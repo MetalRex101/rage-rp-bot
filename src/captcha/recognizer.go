@@ -28,8 +28,8 @@ type RecognizerClient struct {
 }
 
 // returns correct answer number: from 1 to 3
-func (c *RecognizerClient) recognizeAndSolve() (int, error) {
-	resp, err := c.Get("localhost:8118/recognize-and-solve")
+func (c *RecognizerClient) recognizeAndSolve(predictionId int64) (int, error) {
+	resp, err := c.Get(fmt.Sprintf("localhost:8118/recognize-and-solve?prediction_id=%d", predictionId))
 	if err != nil {
 		return 0, err
 	}

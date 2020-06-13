@@ -18,34 +18,34 @@ type ScreenshotProcessor struct {
 
 // extracts captcha question and answers from screenshot,
 // filters images and saves it to separate dir
-func (p *ScreenshotProcessor) ProcessAndSave (img image.Image) error {
+func (p *ScreenshotProcessor) ProcessAndSave (img image.Image) (int64, error) {
 	predictionId := time.Now().UnixNano()
 
 	captcha, err := p.c.CropCaptcha(img)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	question, err := p.c.CropQuestion(captcha)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	_, err = p.s.SaveQuestion(question, predictionId)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	for i:= 1; i < 4; i++ {
 		answer, err := p.c.CropAnswer(captcha, i)
 		if err != nil {
-			return err
+			return 0, err
 		}
 
 		_, err = p.s.SaveAnswer(answer, i, predictionId)
 		if err != nil {
-			return err
+			return 0, err
 		}
 	}
 
-	return nil
+	return predictionId, nil
 }

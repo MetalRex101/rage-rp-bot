@@ -42,11 +42,12 @@ func (c *Solver) start(runCheckCh <-chan struct{}) {
 				panic(fmt.Sprintf("failed to take screenshot: %s", err))
 			}
 
-			if err := c.processor.ProcessAndSave(screenshot); err != nil {
+			predictionId, err := c.processor.ProcessAndSave(screenshot)
+			if err != nil {
 				panic(fmt.Sprintf("failed to process screenshot: %s", err))
 			}
 
-			answerNum, err := c.client.recognizeAndSolve()
+			answerNum, err := c.client.recognizeAndSolve(predictionId)
 			if err == NoCaptchaAppearedErr {
 				continue
 			}
