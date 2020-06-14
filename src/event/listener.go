@@ -7,7 +7,7 @@ import (
 )
 
 func NewEventListener() *Listener {
-	return &Listener{outCh: make(chan Event)}
+	return &Listener{outCh: make(chan Event, 100)}
 }
 
 type Listener struct {
@@ -22,19 +22,22 @@ func (l *Listener) Start () <-chan Event {
 
 func (l *Listener) start() {
 	writeHelpMessage()
-	robotgo.EventHook(hook.KeyDown, []string{"p", "ctrl"}, func(e hook.Event) {
-		fmt.Println("ctrl-p: pause bot")
+	robotgo.EventHook(hook.KeyDown, []string{"o", "ctrl"}, func(e hook.Event) {
+		fmt.Println("ctrl-o: pause bot")
 		l.outCh <- Event{T: pause}
+		fmt.Println("ctrl-o: event sent")
 	})
 
 	robotgo.EventHook(hook.KeyDown, []string{"r", "ctrl"}, func(e hook.Event) {
 		fmt.Println("ctrl-r: resume bot")
 		l.outCh <- Event{T: resume}
+		fmt.Println("ctrl-r: event sent")
 	})
 
 	robotgo.EventHook(hook.KeyDown, []string{"c", "ctrl"}, func(e hook.Event) {
 		fmt.Println("ctrl-c: stop bot. Exiting...")
 		l.outCh <- Event{T: stop}
+		fmt.Println("ctrl-c: event sent")
 		robotgo.EventEnd()
 	})
 
@@ -43,7 +46,7 @@ func (l *Listener) start() {
 
 func writeHelpMessage() {
 	shortcuts := []string{
-		"ctrl+p to pause bot",
+		"ctrl+o to pause bot",
 		"ctrl+r to resume bot",
 		"ctrl+c tp stop bot",
 	}

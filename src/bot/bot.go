@@ -6,7 +6,6 @@ import (
 	"rp-bot-client/src/captcha"
 	"rp-bot-client/src/event"
 	"rp-bot-client/src/miner"
-	"time"
 )
 
 var stopErr = errors.New("stop application")
@@ -51,6 +50,7 @@ func (b *Bot) mainLoop() {
 
 	eventCh := b.eventListener.Start()
 	captchaSolvedCh := b.captchaSolver.Start(checkCaptchaChan)
+	b.minerWorker.Start(checkCaptchaChan)
 
 	fmt.Println("[*] Bot have started")
 	for {
@@ -63,18 +63,11 @@ func (b *Bot) mainLoop() {
 			}
 		case answerNum := <-captchaSolvedCh:
 			if b.running {
+				fmt.Println(fmt.Sprintf("[*] Debug: answering the captcha with manipulator"))
 				if err := b.captchaMouseManipulator.Answer(answerNum); err != nil {
 					panic(fmt.Sprintf("captcha manipulator error: %s", err))
 				}
 			}
-		default:
-			if !b.running {
-				time.Sleep(100 * time.Millisecond)
-				continue
-			}
-
-			b.minerWorker.DigOreOnce()
-			checkCaptchaChan <- struct{}{}
 		}
 	}
 }
@@ -91,6 +84,7 @@ func (b *Bot) handleEvent(e event.Event) error {
 
 	if e.IsResume() {
 		b.running = true
+		b.minerWorker.Resume()
 	}
 
 	return nil

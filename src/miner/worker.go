@@ -7,44 +7,80 @@ import (
 	"time"
 )
 
+const (
+	holdTime = 6 * time.Second
+	digTime  = 7 * time.Second
+)
+
 func NewWorker(mineBtn string, pid int32) *Worker {
 	return &Worker{
-		mineBtn:     mineBtn,
-		pid:         pid,
-		interruptCh: make(chan struct{}),
+		mineBtn:   mineBtn,
+		pid:       pid,
+		running:   true,
+		stateChan: make(chan bool),
 	}
+}
+
+func (w *Worker) Start(checkCaptchaCh chan<- struct{}) {
+	go w.dig(checkCaptchaCh)
 }
 
 type Worker struct {
 	mineBtn string
 	pid     int32
+	running bool
 
-	interruptCh chan struct{}
-}
-
-func (w *Worker) DigOreOnce() {
-	w.dig()
+	stateChan chan bool
 }
 
 func (w *Worker) Interrupt() {
-	w.interruptCh <- struct{}{}
+	fmt.Println("[*] Debug: Before interrupt")
+	w.stateChan <- false
+	fmt.Println("[*] Debug: After interrupt")
 }
 
-func (w *Worker) dig() {
+func (w *Worker) Resume() {
+	fmt.Println("[*] Debug: Before resume")
+	w.stateChan <- true
+	fmt.Println("[*] Debug: After resume")
+}
+
+func (w *Worker) dig(checkCaptchaCh chan<- struct{}) {
 	fmt.Println("[*] Debug: Dig once")
 
-	w.holdMineBtn()
-	// hold 6 sec to activate animation
-	toggleTimeout := time.NewTimer(time.Second * 6)
+	digCh := make(chan struct{})
 
-	select {
-	case <-toggleTimeout.C:
-		w.releaseMineBtn()
-		// release and wait 7 sec until animation is finished
-		time.Sleep(time.Second * 7)
-	case <-w.interruptCh:
-		w.releaseMineBtn()
-		return
+	w.holdMineBtn()
+	timer := time.NewTimer(holdTime)
+
+	for {
+		select {
+		case <-digCh:
+			if !w.running {
+				time.Sleep(100 * time.Millisecond)
+				continue
+			}
+			w.holdMineBtn()
+			timer.Reset(holdTime)
+		// hold 6 sec to activate animation
+		case <-timer.C:
+			w.releaseMineBtn()
+			// release and wait 7 sec until animation is finished
+			time.Sleep(digTime)
+			// miner finished to dig - time to check captcha
+			checkCaptchaCh <- struct{}{}
+			fmt.Println(fmt.Sprintf("[*] Debug: before send to dig"))
+			go func() { digCh <- struct{}{} }()
+			fmt.Println(fmt.Sprintf("[*] Debug: after send to dig"))
+		case w.running = <-w.stateChan:
+			if !w.running {
+				w.releaseMineBtn()
+				fmt.Println("[*] Debug: Miner was interrupted")
+			} else {
+				go func() { digCh <- struct{}{} }()
+				fmt.Println("[*] Debug: Miner was resumed")
+			}
+		}
 	}
 }
 

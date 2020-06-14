@@ -49,3 +49,7 @@ func (p *ScreenshotProcessor) ProcessAndSave (img image.Image) (int64, error) {
 
 	return predictionId, nil
 }
+
+func (p *ScreenshotProcessor) CleanUp(predictionId int64) error {
+	return p.s.CleanUpPredictionFiles(predictionId)
+}

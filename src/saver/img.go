@@ -60,13 +60,13 @@ func (s *Img) SaveAnswerToDataset(img image.Image, datasetNum, answerNum int, sc
 }
 
 func (s *Img) SaveAnswer(img image.Image, answerNum int, predictionId int64) (string, error) {
-	path := fmt.Sprintf("%s/%d/answer_%d.jpg", predictionsBasePathTpl, predictionId, answerNum)
+	path := fmt.Sprintf("%s/%d/answers/answer_%d.jpg", predictionsBasePathTpl, predictionId, answerNum)
 
 	return s.saveToFile(img, path)
 }
 
 func (s *Img) SaveQuestion(img image.Image, predictionId int64) (string, error) {
-	path := fmt.Sprintf("%s/%d/question.jpg", predictionsBasePathTpl, predictionId)
+	path := fmt.Sprintf("%s/%d/question/question.jpg", predictionsBasePathTpl, predictionId)
 
 	return s.saveToFile(img, path)
 }
@@ -75,4 +75,8 @@ func (s *Img) SaveScreenshot(img image.Image, name string) (string, error) {
 	path := fmt.Sprintf("resources/screenshots/%s.jpg", name)
 
 	return s.saveToFile(img, path)
+}
+
+func (s *Img) CleanUpPredictionFiles(predictionId int64) error {
+	return os.RemoveAll(fmt.Sprintf("%s/%d", predictionsBasePathTpl, predictionId))
 }

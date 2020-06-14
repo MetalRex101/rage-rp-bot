@@ -44,17 +44,19 @@ func (p *Img) CropAnswer(img image.Image, num int) (image.Image, error) {
 
 func (p *Img) CropQuestion(img image.Image) (image.Image, error) {
 	img, err := cutter.Crop(img, cutter.Config{
-		Width:  250,
-		Height: 25,
-		Anchor: image.Point{X: 0, Y: 68},
+		Width:  40,
+		Height: 20,
+		Anchor: image.Point{X: 85, Y: 71},
 		Mode:   cutter.TopLeft, // optional, default value
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	img = imaging.AdjustContrast(img, 60)
+	img = imaging.AdjustContrast(img, 70)
+	img = imaging.Sharpen(img, 1)
 	img = imaging.Invert(img)
+	img = imaging.Grayscale(img)
 
 	return img, nil
 }

@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/go-vgo/robotgo"
+	"github.com/pkg/errors"
 	"golang.org/x/image/bmp"
 	"image"
 )
 
-func NewSolver(pid int32, client *RecognizerClient, processor *ScreenshotProcessor) *Solver {
+func NewSolver(pid int32, client *Recognizer, processor *ScreenshotProcessor) *Solver {
 	return &Solver{
 		pid:       pid,
 		stopCh:    make(chan struct{}),
@@ -23,50 +24,65 @@ type Solver struct {
 	stopCh   chan struct{}
 	answerCh chan int
 
-	client    *RecognizerClient
+	client    *Recognizer
 	processor *ScreenshotProcessor
 }
 
-func (c *Solver) Start(runCheckCh <-chan struct{}) <-chan int {
-	go c.start(runCheckCh)
+func (s *Solver) Start(runCheckCh <-chan struct{}) <-chan int {
+	go s.start(runCheckCh)
 
-	return c.answerCh
+	return s.answerCh
 }
 
-func (c *Solver) start(runCheckCh <-chan struct{}) {
+func (s *Solver) start(runCheckCh <-chan struct{}) {
 	for {
 		select {
 		case <-runCheckCh:
-			screenshot, err := c.takeScreenShot(c.pid)
-			if err != nil {
-				panic(fmt.Sprintf("failed to take screenshot: %s", err))
-			}
-
-			predictionId, err := c.processor.ProcessAndSave(screenshot)
-			if err != nil {
-				panic(fmt.Sprintf("failed to process screenshot: %s", err))
-			}
-
-			answerNum, err := c.client.recognizeAndSolve(predictionId)
+			answerNum, err := s.solve()
 			if err == NoCaptchaAppearedErr {
-				fmt.Println("[*] Debug: no captcha appeared. Continue")
 				continue
+			} else if err != nil {
+				panic(err)
 			}
 
-			if err != nil {
-				panic(fmt.Sprintf("failed to recognize captcha images: %s", err))
-			}
-
-			fmt.Println("[*] Debug: captcha appeared and solved!")
-
-			c.answerCh <- answerNum
-		case <-c.stopCh:
+			s.answerCh <- answerNum
+		case <-s.stopCh:
 			return
 		}
 	}
 }
 
-func (c *Solver) takeScreenShot(pid int32) (image.Image, error) {
+func (s *Solver) solve() (int, error) {
+	screenshot, err := s.takeScreenShot(s.pid)
+	if err != nil {
+		panic(fmt.Sprintf("failed to take screenshot: %s", err))
+	}
+
+	predictionId, err := s.processor.ProcessAndSave(screenshot)
+	if err != nil {
+		panic(fmt.Sprintf("failed to process screenshot: %s", err))
+	}
+
+	defer func () {
+		if err := s.processor.CleanUp(predictionId); err != nil {
+			fmt.Println(fmt.Sprintf("failed to clean up prediction [%d]: %s", predictionId, err))
+		}
+	}()
+
+	answerNum, err := s.client.recognizeAndSolve(predictionId)
+	if err == NoCaptchaAppearedErr {
+		fmt.Println("[*] Debug: no captcha appeared. Continue")
+		return 0, NoCaptchaAppearedErr
+	} else if err != nil {
+		return 0, errors.Wrap(err, "failed to recognize captcha images")
+	}
+
+	fmt.Println("[*] Debug: captcha appeared and solved!")
+
+	return answerNum, nil
+}
+
+func (s *Solver) takeScreenShot(pid int32) (image.Image, error) {
 	// if we need more than 1 try to capture game window (if user clicked other window)
 	for {
 		if err := robotgo.ActivePID(pid); err != nil {
@@ -81,6 +97,6 @@ func (c *Solver) takeScreenShot(pid int32) (image.Image, error) {
 	}
 }
 
-func (c *Solver) Stop() {
-	c.stopCh <- struct{}{}
+func (s *Solver) Stop() {
+	s.stopCh <- struct{}{}
 }

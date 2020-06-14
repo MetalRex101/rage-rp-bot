@@ -1,6 +1,9 @@
 package captcha
 
-import "github.com/go-vgo/robotgo"
+import (
+	"github.com/go-vgo/robotgo"
+	"rp-bot-client/src/window"
+)
 
 func NewMouseManipulator(pid int32) *MouseManipulator {
 	return &MouseManipulator{
@@ -21,38 +24,26 @@ func (m *MouseManipulator) Answer(answerNum int) error {
 }
 
 func (m *MouseManipulator) selectAnswer(answerNum int) error {
-	// if we need more than 1 try to capture game window (if user clicked other window)
-	for {
-		if err := robotgo.ActivePID(m.pid); err != nil {
-			return err
-		}
-		if m.pid == robotgo.GetPID() {
-			x, y := m.getAnswerCoordinates(answerNum)
+	return window.ActivatePidAndRun(m.pid, func() error {
+		x, y := m.getAnswerCoordinates(answerNum)
 
-			robotgo.MoveSmooth(x, y)
-			robotgo.Click()
+		robotgo.MoveSmooth(x, y)
+		robotgo.Click()
 
-			return nil
-		}
-	}
+		return nil
+	})
 }
 
 func (m *MouseManipulator) clickAnswerButton() error {
 	// answer button coordinates
 	const x, y = 912, 702
 
-	// if we need more than 1 try to capture game window (if user clicked other window)
-	for {
-		if err := robotgo.ActivePID(m.pid); err != nil {
-			return err
-		}
-		if m.pid == robotgo.GetPID() {
-			robotgo.MoveSmooth(x, y)
-			robotgo.Click()
+	return window.ActivatePidAndRun(m.pid, func() error {
+		robotgo.MoveSmooth(x, y)
+		robotgo.Click()
 
-			return nil
-		}
-	}
+		return nil
+	})
 }
 
 func (m *MouseManipulator) getAnswerCoordinates(answerNum int) (x int, y int) {
