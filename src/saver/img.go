@@ -5,6 +5,7 @@ import (
 	"image"
 	"image/jpeg"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -16,7 +17,19 @@ func NewImg() *Img {
 
 type Img struct{}
 
+func (s *Img) mkdir(path string) {
+	dir := filepath.Dir(path)
+
+	if _, err := os.Stat(dir); os.IsNotExist(err) {
+		if err := os.MkdirAll(dir, os.ModePerm); err != nil {
+			panic(err)
+		}
+	}
+}
+
 func (s *Img) saveToFile(img image.Image, path string) (string, error) {
+	s.mkdir(path)
+
 	f, err := os.Create(path)
 	if err != nil {
 		panic(err)

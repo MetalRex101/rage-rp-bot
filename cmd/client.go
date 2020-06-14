@@ -59,7 +59,7 @@ func runClient(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	minerWorker := miner.NewWorker("e")
+	minerWorker := miner.NewWorker("e", pid)
 	captchaSolver := captcha.NewSolver(
 		pid,
 		captcha.NewRecognizerClient(),

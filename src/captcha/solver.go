@@ -49,12 +49,15 @@ func (c *Solver) start(runCheckCh <-chan struct{}) {
 
 			answerNum, err := c.client.recognizeAndSolve(predictionId)
 			if err == NoCaptchaAppearedErr {
+				fmt.Println("[*] Debug: no captcha appeared. Continue")
 				continue
 			}
 
 			if err != nil {
 				panic(fmt.Sprintf("failed to recognize captcha images: %s", err))
 			}
+
+			fmt.Println("[*] Debug: captcha appeared and solved!")
 
 			c.answerCh <- answerNum
 		case <-c.stopCh:

@@ -1,28 +1,29 @@
 package miner
 
 import (
+	"fmt"
 	"github.com/go-vgo/robotgo"
+	"rp-bot-client/src/window"
 	"time"
 )
 
-func NewWorker(mineBtn string) *Worker {
+func NewWorker(mineBtn string, pid int32) *Worker {
 	return &Worker{
-		mineBtn: mineBtn,
-		finished: make(chan struct{}),
+		mineBtn:     mineBtn,
+		pid:         pid,
 		interruptCh: make(chan struct{}),
 	}
 }
 
 type Worker struct {
-	mineBtn     string
-	finished    chan struct{}
+	mineBtn string
+	pid     int32
+
 	interruptCh chan struct{}
 }
 
-func (w *Worker) DigOreOnce() <-chan struct{} {
-	go w.dig()
-
-	return w.finished
+func (w *Worker) DigOreOnce() {
+	w.dig()
 }
 
 func (w *Worker) Interrupt() {
@@ -30,19 +31,43 @@ func (w *Worker) Interrupt() {
 }
 
 func (w *Worker) dig() {
-	defer robotgo.KeyToggle(w.mineBtn, "up")
+	fmt.Println("[*] Debug: Dig once")
 
-	robotgo.KeyToggle(w.mineBtn, "down")
-
+	w.holdMineBtn()
+	// hold 6 sec to activate animation
 	toggleTimeout := time.NewTimer(time.Second * 6)
 
 	select {
 	case <-toggleTimeout.C:
-		robotgo.KeyToggle(w.mineBtn, "up")
+		w.releaseMineBtn()
+		// release and wait 7 sec until animation is finished
 		time.Sleep(time.Second * 7)
-
-		<- w.finished
 	case <-w.interruptCh:
+		w.releaseMineBtn()
 		return
+	}
+}
+
+func (w *Worker) holdMineBtn() {
+	err := window.ActivatePidAndRun(w.pid, func() error {
+		robotgo.KeyToggle(w.mineBtn, "down")
+		fmt.Println("[*] Debug: mine key down")
+		return nil
+	})
+
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (w *Worker) releaseMineBtn() {
+	err := window.ActivatePidAndRun(w.pid, func() error {
+		robotgo.KeyToggle(w.mineBtn, "up")
+		fmt.Println("[*] Debug: mine key up")
+		return nil
+	})
+
+	if err != nil {
+		panic(err)
 	}
 }

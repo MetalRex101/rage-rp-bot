@@ -20,7 +20,8 @@ func NewBot(
 	eventListener *event.Listener,
 ) *Bot {
 	return &Bot{
-		pid: pid,
+		pid:     pid,
+		running: true,
 
 		minerWorker:             minerWorker,
 		captchaSolver:           captchaSolver,
@@ -51,6 +52,7 @@ func (b *Bot) mainLoop() {
 	eventCh := b.eventListener.Start()
 	captchaSolvedCh := b.captchaSolver.Start(checkCaptchaChan)
 
+	fmt.Println("[*] Bot have started")
 	for {
 		select {
 		case e := <-eventCh:
@@ -71,7 +73,7 @@ func (b *Bot) mainLoop() {
 				continue
 			}
 
-			<-b.minerWorker.DigOreOnce()
+			b.minerWorker.DigOreOnce()
 			checkCaptchaChan <- struct{}{}
 		}
 	}
