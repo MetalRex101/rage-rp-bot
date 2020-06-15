@@ -24,23 +24,10 @@ import (
 	"rp-bot-client/src/captcha"
 	"rp-bot-client/src/cropper"
 	"rp-bot-client/src/event"
-	"rp-bot-client/src/miner"
 	"rp-bot-client/src/repainter"
 	"rp-bot-client/src/saver"
 	"rp-bot-client/src/worker"
 )
-
-// #cgo windows LDFLAGS: -lgdi32 -luser32
-// #cgo windows,amd64 LDFLAGS: -L${SRCDIR}/cdeps/win64 -lpng -lz
-// #cgo windows,386 LDFLAGS: -L${SRCDIR}/cdeps/win32 -lpng -lz
-
-// //#include "screen/goScreen.h"
-// //#include "mouse/goMouse.h"
-// //#include "key/goKey.h"
-// //#include "bitmap/goBitmap.h"
-// //#include "event/goEvent.h"
-// // #include "github.com/go-vgo/robotgo/window/goWindow.h"
-import "C"
 
 type botType string
 

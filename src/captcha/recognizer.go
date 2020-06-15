@@ -142,7 +142,7 @@ func (r *Recognizer) parseAnswers(predictionId int64) ([]int, error) {
 func (r *Recognizer) generatePredictions(path string, t recognitionType, procNum int) error {
 	exePath := "calamari-predict"
 
-	modelPath, err := filepath.Abs(fmt.Sprintf("resources/ml_models/%s/model_last.ckpt", t))
+	modelPath, err := filepath.Abs(fmt.Sprintf("resources/ml_models_new/%s/model_last.ckpt", t))
 	if err != nil {
 		return err
 	}

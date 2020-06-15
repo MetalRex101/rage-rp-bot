@@ -9,20 +9,20 @@ import (
 type pixel struct {
 	x      int
 	y      int
-	curClr color.RGBA
+	curClr color.NRGBA
 }
 
 type Img struct {
 	repaintByte uint8
-	rgbaBlack   color.RGBA
-	rgbaWhite   color.RGBA
+	rgbaBlack   color.NRGBA
+	rgbaWhite   color.NRGBA
 }
 
 func NewImage() *Img {
 	return &Img{
 		repaintByte: 210, //affects on recolour accuracy. Closer to 255 - the numbers in the result image will be thinner
-		rgbaBlack:   color.RGBA{R: 0, G: 0, B: 0, A: 0},
-		rgbaWhite:   color.RGBA{R: 255, G: 255, B: 255, A: 255},
+		rgbaBlack:   color.NRGBA{R: 0, G: 0, B: 0, A: 0},
+		rgbaWhite:   color.NRGBA{R: 255, G: 255, B: 255, A: 255},
 	}
 }
 
@@ -34,7 +34,7 @@ func (r *Img) Repaint(img image.Image, inverted bool) image.Image {
 
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			clr := img.At(x, y).(color.RGBA)
+			clr := img.At(x, y).(color.NRGBA)
 
 			if inverted {
 				r.recolourPixelInverted(drawImg, pixel{x: x, y: y, curClr: clr})
@@ -65,6 +65,6 @@ func (r *Img) recolourPixelInverted(img draw.Image, p pixel) {
 	img.Set(p.x, p.y, r.rgbaWhite)
 }
 
-func (r *Img) isPixelLookLikeWhite(clr color.RGBA) bool {
+func (r *Img) isPixelLookLikeWhite(clr color.NRGBA) bool {
 	return clr.R > r.repaintByte && clr.G > r.repaintByte && clr.B > r.repaintByte && clr.A > r.repaintByte
 }

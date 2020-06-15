@@ -8,11 +8,11 @@ import (
 )
 
 func NewImage(r *repainter.Img) *Img {
-	return &Img{repainter: r}
+	return &Img{painter: r}
 }
 
 type Img struct {
-	repainter *repainter.Img
+	painter *repainter.Img
 }
 
 func (p *Img) CropAnswer(img image.Image, num int) (image.Image, error) {
@@ -37,10 +37,7 @@ func (p *Img) CropAnswer(img image.Image, num int) (image.Image, error) {
 		return nil, err
 	}
 
-	img = imaging.AdjustGamma(img, 0.2)
-	img = imaging.Sharpen(img, 4)
-	img = imaging.AdjustContrast(img, 30)
-	// img = imaging.Invert(img)
+	img = p.painter.Repaint(img, false)
 
 	return img, nil
 }
@@ -56,7 +53,9 @@ func (p *Img) CropQuestion(img image.Image) (image.Image, error) {
 		return nil, err
 	}
 
-	img = p.repainter.Repaint(img, true)
+	img = imaging.AdjustContrast(img, 60)
+	img = imaging.Invert(img)
+	// img = p.painter.Repaint(img, true)
 
 	return img, nil
 }
