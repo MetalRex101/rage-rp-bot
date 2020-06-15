@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	oilHoldTime = 3500 * time.Millisecond
+	oilHoldTime = 4100 * time.Millisecond
 )
 
 type coordinates struct {
