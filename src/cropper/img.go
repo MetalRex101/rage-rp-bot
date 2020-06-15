@@ -1,7 +1,6 @@
 package cropper
 
 import (
-	"github.com/disintegration/imaging"
 	"github.com/oliamb/cutter"
 	"image"
 	"rp-bot-client/src/repainter"
@@ -53,9 +52,9 @@ func (p *Img) CropQuestion(img image.Image) (image.Image, error) {
 		return nil, err
 	}
 
-	img = imaging.AdjustContrast(img, 60)
-	img = imaging.Invert(img)
-	// img = p.painter.Repaint(img, true)
+	//img = imaging.AdjustContrast(img, 60)
+	//img = imaging.Invert(img)
+	img = p.painter.Repaint(img, true)
 
 	return img, nil
 }
