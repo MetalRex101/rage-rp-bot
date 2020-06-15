@@ -25,6 +25,7 @@ import (
 	"rp-bot-client/src/cropper"
 	"rp-bot-client/src/event"
 	"rp-bot-client/src/miner"
+	"rp-bot-client/src/repainter"
 	"rp-bot-client/src/saver"
 )
 
@@ -63,7 +64,7 @@ func runClient(cmd *cobra.Command, args []string) error {
 	captchaSolver := captcha.NewSolver(
 		pid,
 		captcha.NewRecognizer(),
-		captcha.NewScreenshotProcessor(cropper.NewImage(), saver.NewImg()),
+		captcha.NewScreenshotProcessor(cropper.NewImage(repainter.NewImage()), saver.NewImg()),
 	)
 
 	return bot.NewBot(pid, minerWorker, captchaSolver, captcha.NewMouseManipulator(pid), event.NewEventListener()).Start()
