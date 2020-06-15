@@ -38,11 +38,13 @@ func (s *Solver) start(runCheckCh <-chan struct{}) {
 	for {
 		select {
 		case <-runCheckCh:
+			fmt.Println("[*] Debug: Checking the captcha")
 			answerNum, err := s.solve()
 			if err == NoCaptchaAppearedErr {
 				continue
 			} else if err != nil {
-				panic(err)
+				fmt.Println(fmt.Sprintf("failed to recognize captcha: %s. Continue", err))
+				continue
 			}
 
 			s.answerCh <- answerNum
@@ -63,21 +65,24 @@ func (s *Solver) solve() (int, error) {
 		panic(fmt.Sprintf("failed to process screenshot: %s", err))
 	}
 
-	defer func () {
-		if err := s.processor.CleanUp(predictionId); err != nil {
-			fmt.Println(fmt.Sprintf("failed to clean up prediction [%d]: %s", predictionId, err))
-		}
-	}()
-
 	answerNum, err := s.client.recognizeAndSolve(predictionId)
 	if err == NoCaptchaAppearedErr {
 		fmt.Println("[*] Debug: no captcha appeared. Continue")
+
+		if err := s.processor.CleanUp(predictionId); err != nil {
+			fmt.Println(fmt.Sprintf("failed to clean up prediction [%d]: %s", predictionId, err))
+		}
+
 		return 0, NoCaptchaAppearedErr
 	} else if err != nil {
 		return 0, errors.Wrap(err, "failed to recognize captcha images")
 	}
 
 	fmt.Println("[*] Debug: captcha appeared and solved!")
+
+	if err := s.processor.CleanUp(predictionId); err != nil {
+		fmt.Println(fmt.Sprintf("failed to clean up prediction [%d]: %s", predictionId, err))
+	}
 
 	return answerNum, nil
 }

@@ -3,6 +3,7 @@ package captcha
 import (
 	"github.com/go-vgo/robotgo"
 	"rp-bot-client/src/window"
+	"time"
 )
 
 func NewMouseManipulator(pid int32) *MouseManipulator {
@@ -27,7 +28,8 @@ func (m *MouseManipulator) selectAnswer(answerNum int) error {
 	return window.ActivatePidAndRun(m.pid, func() error {
 		x, y := m.getAnswerCoordinates(answerNum)
 
-		robotgo.MoveSmooth(x, y)
+		robotgo.Move(x, y)
+		time.Sleep(10 * time.Millisecond)
 		robotgo.Click()
 
 		return nil
@@ -39,7 +41,8 @@ func (m *MouseManipulator) clickAnswerButton() error {
 	const x, y = 912, 702
 
 	return window.ActivatePidAndRun(m.pid, func() error {
-		robotgo.MoveSmooth(x, y)
+		robotgo.Move(x, y)
+		time.Sleep(10 * time.Millisecond)
 		robotgo.Click()
 
 		return nil
