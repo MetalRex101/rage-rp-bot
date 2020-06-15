@@ -4,13 +4,16 @@ import (
 	"github.com/disintegration/imaging"
 	"github.com/oliamb/cutter"
 	"image"
+	"rp-bot-client/src/repainter"
 )
 
-func NewImage() *Img {
-	return &Img{}
+func NewImage(r *repainter.Img) *Img {
+	return &Img{repainter: r}
 }
 
-type Img struct {}
+type Img struct {
+	repainter *repainter.Img
+}
 
 func (p *Img) CropAnswer(img image.Image, num int) (image.Image, error) {
 	var y int
@@ -53,10 +56,7 @@ func (p *Img) CropQuestion(img image.Image) (image.Image, error) {
 		return nil, err
 	}
 
-	img = imaging.AdjustContrast(img, 70)
-	img = imaging.Sharpen(img, 1)
-	img = imaging.Invert(img)
-	img = imaging.Grayscale(img)
+	img = p.repainter.Repaint(img, true)
 
 	return img, nil
 }
