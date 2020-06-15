@@ -49,6 +49,8 @@ func (w *Miner) Restart() {
 	w.Resume()
 }
 
+func (w *Miner) ToggleHoldTime() {}
+
 func (w *Miner) dig(checkCaptchaCh chan<- struct{}) {
 	fmt.Println("[*] Debug: Dig once")
 

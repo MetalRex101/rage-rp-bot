@@ -7,6 +7,7 @@ type Worker interface {
 	Restart()
 	Resume()
 	Interrupt()
+	ToggleHoldTime()
 }
 
 func GetWorker(pid int32, botType string, btn string) (Worker, error) {

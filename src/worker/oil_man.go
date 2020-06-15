@@ -8,7 +8,8 @@ import (
 )
 
 const (
-	oilHoldTime = 4100 * time.Millisecond
+	oilHoldShortTime = 3500 * time.Millisecond
+	oilHoldLongTime  = 4500 * time.Millisecond
 )
 
 type coordinates struct {
@@ -25,8 +26,10 @@ var oilCoordinates = map[int]coordinates{
 
 func NewOilMan(pid int32) *OilMan {
 	return &OilMan{
-		pid:       pid,
-		running:   true,
+		pid:      pid,
+		running:  true,
+		holdTime: oilHoldLongTime,
+
 		stateChan: make(chan bool),
 	}
 }
@@ -40,6 +43,7 @@ type OilMan struct {
 	pid        int32
 	running    bool
 	currentOil int
+	holdTime   time.Duration
 
 	stateChan chan bool
 }
@@ -56,12 +60,20 @@ func (w *OilMan) Resume() {
 	fmt.Println("[*] Debug: After resume")
 }
 
-
 func (w *OilMan) Restart() {
 	w.Interrupt()
 	w.currentOil = 0
 	time.Sleep(100 * time.Millisecond)
 	w.Resume()
+}
+
+func (w *OilMan) ToggleHoldTime() {
+	if w.holdTime == oilHoldLongTime {
+		w.holdTime = oilHoldShortTime
+	} else {
+		w.holdTime = oilHoldLongTime
+	}
+	w.Restart()
 }
 
 func (w *OilMan) oil(checkCaptchaCh chan<- struct{}) {
@@ -70,7 +82,7 @@ func (w *OilMan) oil(checkCaptchaCh chan<- struct{}) {
 	oilCh := make(chan struct{})
 
 	w.holdOil()
-	timer := time.NewTimer(oilHoldTime)
+	timer := time.NewTimer(w.holdTime)
 
 	for {
 		select {
@@ -80,7 +92,7 @@ func (w *OilMan) oil(checkCaptchaCh chan<- struct{}) {
 				continue
 			}
 			w.holdOil()
-			timer.Reset(oilHoldTime)
+			timer.Reset(w.holdTime)
 		// hold 6 sec to activate animation
 		case <-timer.C:
 			fmt.Println(fmt.Sprintf("[*] Debug: current oil: %d", w.currentOil))
