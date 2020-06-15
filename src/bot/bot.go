@@ -89,5 +89,10 @@ func (b *Bot) handleEvent(e event.Event) error {
 		b.worker.Resume()
 	}
 
+	if e.IsRestart() {
+		b.running = true
+		b.worker.Restart()
+	}
+
 	return nil
 }

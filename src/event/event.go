@@ -3,9 +3,10 @@ package event
 type eventType string
 
 const (
-	stop   eventType = "stop"
-	pause  eventType = "pause"
-	resume eventType = "resume"
+	stop    eventType = "stop"
+	pause   eventType = "pause"
+	resume  eventType = "resume"
+	restart eventType = "restart"
 )
 
 type Event struct {
@@ -22,4 +23,8 @@ func (e Event) IsPause() bool {
 
 func (e Event) IsResume() bool {
 	return e.T == resume
+}
+
+func (e Event) IsRestart() bool {
+	return e.T == restart
 }

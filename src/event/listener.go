@@ -34,6 +34,12 @@ func (l *Listener) start() {
 		fmt.Println("ctrl-r: event sent")
 	})
 
+	robotgo.EventHook(hook.KeyDown, []string{"t", "ctrl"}, func(e hook.Event) {
+		fmt.Println("ctrl-t: resume bot")
+		l.outCh <- Event{T: restart}
+		fmt.Println("ctrl-t: event sent")
+	})
+
 	robotgo.EventHook(hook.KeyDown, []string{"c", "ctrl"}, func(e hook.Event) {
 		fmt.Println("ctrl-c: stop bot. Exiting...")
 		l.outCh <- Event{T: stop}
@@ -48,7 +54,8 @@ func writeHelpMessage() {
 	shortcuts := []string{
 		"ctrl+o to pause bot",
 		"ctrl+r to resume bot",
-		"ctrl+c tp stop bot",
+		"ctrl+c to stop bot",
+		"ctrl+t to restart bot",
 	}
 
 	fmt.Println("[*] Please use this keyboard shortcuts to control the bot: ")
