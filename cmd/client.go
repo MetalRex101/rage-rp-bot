@@ -24,8 +24,8 @@ import (
 	"rp-bot-client/src/captcha"
 	"rp-bot-client/src/cropper"
 	"rp-bot-client/src/event"
-	"rp-bot-client/src/miner"
 	"rp-bot-client/src/saver"
+	"rp-bot-client/src/worker"
 )
 
 // #cgo windows LDFLAGS: -lgdi32 -luser32
@@ -39,6 +39,22 @@ import (
 // //#include "event/goEvent.h"
 // // #include "github.com/go-vgo/robotgo/window/goWindow.h"
 import "C"
+
+type botType string
+
+func (b botType) isValid() bool {
+	switch b {
+	case oilMan, miner:
+		return true
+	default:
+		return false
+	}
+}
+
+const (
+	oilMan botType = "oil"
+	miner  botType = "miner"
+)
 
 // clientCmd represents the client command
 var clientCmd = &cobra.Command{
@@ -54,19 +70,28 @@ to quickly create a Cobra application.`,
 }
 
 func runClient(cmd *cobra.Command, args []string) error {
+	botType, err := getBotType(args)
+	if err != nil {
+		return err
+	}
+
 	pid, err := findGtaPid("GTA5.exe")
 	if err != nil {
 		return err
 	}
 
-	minerWorker := miner.NewWorker("e", pid)
+	w, err := worker.GetWorker(pid, botType, "e")
+	if err != nil {
+		return err
+	}
+
 	captchaSolver := captcha.NewSolver(
 		pid,
 		captcha.NewRecognizer(),
 		captcha.NewScreenshotProcessor(cropper.NewImage(), saver.NewImg()),
 	)
 
-	return bot.NewBot(pid, minerWorker, captchaSolver, captcha.NewMouseManipulator(pid), event.NewEventListener()).Start()
+	return bot.NewBot(pid, w, captchaSolver, captcha.NewMouseManipulator(pid), event.NewEventListener()).Start()
 }
 
 func findGtaPid(name string) (int32, error) {
@@ -89,6 +114,20 @@ func findGtaPid(name string) (int32, error) {
 	}
 
 	return pid, nil
+}
+
+func getBotType(args []string) (string, error) {
+	b := "oil"
+
+	if len(args) > 0 {
+		b = args[0]
+	}
+
+	if !botType(b).isValid() {
+		return "", errors.Errorf("invalid bot type. Waiting for 'oil' or 'mine', '%s' given", b)
+	}
+
+	return b, nil
 }
 
 func init() {
