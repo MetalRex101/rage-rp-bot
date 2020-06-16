@@ -5,7 +5,7 @@ import (
 	"rp-bot-client/src/window"
 )
 
-const answerBtnColorHex = ""
+const answerBtnColorHex = "ffcc30"
 
 type pixel struct {
 	x int
@@ -17,10 +17,10 @@ type Checker struct {
 }
 
 func NewChecker() *Checker {
-	return &Checker{answerBtnPixels: []pixel{{1,1}, {2,2}, {3,3}, {4,4}}}
+	return &Checker{answerBtnPixels: []pixel{{840,688}, {940,688}, {844,709}, {937,709}}}
 }
 
-func (c *Checker) isCaptchaAppeared (pid int32) bool {
+func (c *Checker) IsCaptchaAppeared(pid int32) bool {
 	for _, p := range c.answerBtnPixels {
 		if !c.isPixelColorEqualToAnswerBtnColor(pid, p) {
 			return false
@@ -30,11 +30,13 @@ func (c *Checker) isCaptchaAppeared (pid int32) bool {
 	return true
 }
 
-func (c *Checker) isPixelColorEqualToAnswerBtnColor (pid int32, p pixel) bool {
+func (c *Checker) isPixelColorEqualToAnswerBtnColor(pid int32, p pixel) bool {
 	captchaAppeared := true
 
 	err := window.ActivatePidAndRun(pid, func() error {
-		if robotgo.GetPixelColor(p.x, p.y) != answerBtnColorHex {
+		captchaColor := robotgo.GetPixelColor(p.x, p.y)
+
+		if captchaColor != answerBtnColorHex {
 			captchaAppeared = false
 		}
 

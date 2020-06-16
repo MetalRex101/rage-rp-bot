@@ -21,8 +21,8 @@ func NewMiner(mineBtn string, pid int32) *Miner {
 	}
 }
 
-func (w *Miner) Start(checkCaptchaCh chan<- struct{}) {
-	go w.dig(checkCaptchaCh)
+func (w *Miner) Start() {
+	go w.dig()
 }
 
 type Miner struct {
@@ -51,7 +51,7 @@ func (w *Miner) Restart() {
 
 func (w *Miner) ToggleHoldTime() {}
 
-func (w *Miner) dig(checkCaptchaCh chan<- struct{}) {
+func (w *Miner) dig() {
 	fmt.Println("[*] Debug: Dig once")
 
 	digCh := make(chan struct{})
@@ -74,7 +74,7 @@ func (w *Miner) dig(checkCaptchaCh chan<- struct{}) {
 			// release and wait 7 sec until animation is finished
 			time.Sleep(mineDigTime)
 			// worker finished to dig - time to check captcha
-			checkCaptchaCh <- struct{}{}
+			// checkCaptchaCh <- struct{}{}
 			fmt.Println(fmt.Sprintf("[*] Debug: before send to dig"))
 			go func() { digCh <- struct{}{} }()
 			fmt.Println(fmt.Sprintf("[*] Debug: after send to dig"))

@@ -68,18 +68,19 @@ func runClient(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	w, err := worker.GetWorker(pid, botType, "e")
-	if err != nil {
-		return err
-	}
-
+	captchaChecker := captcha.NewChecker()
 	captchaSolver := captcha.NewSolver(
 		pid,
 		captcha.NewRecognizer(),
 		captcha.NewScreenshotProcessor(cropper.NewImage(repainter.NewImage()), saver.NewImg()),
 	)
 
-	return bot.NewBot(pid, w, captchaSolver, captcha.NewMouseManipulator(pid), event.NewEventListener()).Start()
+	w, err := worker.GetWorker(pid, botType, "e", captchaChecker, captchaSolver)
+	if err != nil {
+		return err
+	}
+
+	return bot.NewBot(pid, w, event.NewEventListener()).Start()
 }
 
 func getBotType(args []string) (string, error) {

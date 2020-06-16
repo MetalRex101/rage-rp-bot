@@ -3,11 +3,10 @@ module rp-bot-client
 go 1.14
 
 require (
-	github.com/disintegration/imaging v1.6.2
 	github.com/go-vgo/robotgo v0.90.2
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/oliamb/cutter v0.2.2
-	github.com/pkg/errors v0.8.0
+	github.com/pkg/errors v0.9.0
 	github.com/robotn/gohook v0.30.2
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.4.0

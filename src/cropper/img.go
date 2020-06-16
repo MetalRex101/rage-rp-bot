@@ -51,9 +51,7 @@ func (p *Img) CropQuestion(img image.Image) (image.Image, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	//img = imaging.AdjustContrast(img, 60)
-	//img = imaging.Invert(img)
+	
 	img = p.painter.Repaint(img, true)
 
 	return img, nil

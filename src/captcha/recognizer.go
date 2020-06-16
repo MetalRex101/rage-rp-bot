@@ -14,7 +14,6 @@ import (
 
 var (
 	AnswerValidationErr  = errors.New("answer validation error: answer value should be between 1 and 3")
-	NoCaptchaAppearedErr = errors.New("no captcha appeared")
 	regexpValidationErr  = errors.New("question regexp validation failed")
 )
 
@@ -35,9 +34,7 @@ type Recognizer struct {
 // returns correct answer number: from 1 to 3
 func (r *Recognizer) recognizeAndSolve(predictionId int64) (int, error) {
 	t1, t2, err := r.parserQuestion(predictionId)
-	if err == regexpValidationErr {
-		return 0, NoCaptchaAppearedErr
-	} else if err != nil {
+	if err != nil {
 		return 0, err
 	}
 

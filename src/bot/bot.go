@@ -3,7 +3,6 @@ package bot
 import (
 	"errors"
 	"fmt"
-	"rp-bot-client/src/captcha"
 	"rp-bot-client/src/event"
 	"rp-bot-client/src/worker"
 )
@@ -14,8 +13,6 @@ func NewBot(
 	pid int32,
 
 	minerWorker worker.Worker,
-	captchaSolver *captcha.Solver,
-	captchaMouseManipulator *captcha.MouseManipulator,
 	eventListener *event.Listener,
 ) *Bot {
 	return &Bot{
@@ -23,8 +20,6 @@ func NewBot(
 		running: true,
 
 		worker:                  minerWorker,
-		captchaSolver:           captchaSolver,
-		captchaMouseManipulator: captchaMouseManipulator,
 		eventListener:           eventListener,
 	}
 }
@@ -34,8 +29,6 @@ type Bot struct {
 	running bool
 
 	worker                  worker.Worker
-	captchaSolver           *captcha.Solver
-	captchaMouseManipulator *captcha.MouseManipulator
 	eventListener           *event.Listener
 }
 
@@ -46,11 +39,8 @@ func (b *Bot) Start() error {
 }
 
 func (b *Bot) mainLoop() {
-	checkCaptchaChan := make(chan struct{})
-
 	eventCh := b.eventListener.Start()
-	captchaSolvedCh := b.captchaSolver.Start(checkCaptchaChan)
-	b.worker.Start(checkCaptchaChan)
+	b.worker.Start()
 
 	fmt.Println("[*] Bot have started")
 	for {
@@ -60,15 +50,6 @@ func (b *Bot) mainLoop() {
 				return
 			} else if err != nil {
 				panic(fmt.Sprintf("failed to handle event: %s", err))
-			}
-		case answerNum := <-captchaSolvedCh:
-			if b.running {
-				b.worker.Interrupt()
-				fmt.Println(fmt.Sprintf("[*] Debug: answering the captcha with manipulator"))
-				if err := b.captchaMouseManipulator.Answer(answerNum); err != nil {
-					panic(fmt.Sprintf("captcha manipulator error: %s", err))
-				}
-				b.worker.Restart()
 			}
 		}
 	}
