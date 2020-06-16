@@ -18,7 +18,7 @@ var (
 const (
 	oilHoldShortTime           = 3500 * time.Millisecond
 	oilHoldLongTime            = 4500 * time.Millisecond
-	maxBarrelsCountInInventory = 5
+	maxBarrelsCountInInventory = 1
 )
 
 type coordinates struct {
