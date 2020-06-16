@@ -5,6 +5,7 @@ import (
 	"github.com/go-vgo/robotgo"
 	"github.com/pkg/errors"
 	"rp-bot-client/src/captcha"
+	"rp-bot-client/src/storage"
 	"rp-bot-client/src/window"
 	"time"
 )
@@ -15,8 +16,9 @@ var (
 )
 
 const (
-	oilHoldShortTime = 3500 * time.Millisecond
-	oilHoldLongTime  = 4500 * time.Millisecond
+	oilHoldShortTime           = 3500 * time.Millisecond
+	oilHoldLongTime            = 4500 * time.Millisecond
+	maxBarrelsCountInInventory = 5
 )
 
 type coordinates struct {
@@ -31,14 +33,16 @@ var oilCoordinates = map[int]coordinates{
 	3: {595, 678},
 }
 
-func NewOilMan(pid int32, checker *captcha.Checker, solver *captcha.Solver) *OilMan {
+func NewOilMan(pid int32, checker *captcha.Checker, solver *captcha.Solver, manipulator *storage.Manipulator) *OilMan {
 	return &OilMan{
-		pid:      pid,
-		running:  true,
-		holdTime: oilHoldLongTime,
+		pid:         pid,
+		running:     true,
+		holdTime:    oilHoldLongTime,
+		withStorage: true,
 
-		captchaChecker: checker,
-		captchaSolver:  solver,
+		captchaChecker:     checker,
+		captchaSolver:      solver,
+		storageManipulator: manipulator,
 
 		stateChan: make(chan bool),
 	}
@@ -50,9 +54,12 @@ type OilMan struct {
 	captchaNotAppearedTimes int
 	currentOil              int
 	holdTime                time.Duration
+	withStorage             bool
+	barrelsCounter          int
 
-	captchaChecker *captcha.Checker
-	captchaSolver  *captcha.Solver
+	captchaChecker     *captcha.Checker
+	captchaSolver      *captcha.Solver
+	storageManipulator *storage.Manipulator
 
 	stateChan chan bool
 }
@@ -136,6 +143,11 @@ func (w *OilMan) oil() {
 				panic(fmt.Sprintf("unknown error: %s", err))
 			}
 
+			w.barrelsCounter++
+			if w.barrelsCounter >= maxBarrelsCountInInventory {
+				w.moveBarrelsToStorage()
+			}
+
 			time.Sleep(100 * time.Millisecond)
 
 			fmt.Println(fmt.Sprintf("[*] Debug: before send to oil ch"))
@@ -181,6 +193,16 @@ func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
 	fmt.Println(fmt.Sprintf("[*] Debug: Captcha not appeared times: %d", w.captchaNotAppearedTimes))
 
 	return nil
+}
+
+func (w *OilMan) moveBarrelsToStorage() {
+	w.barrelsCounter = 0
+
+	w.Interrupt()
+	w.pressEsc()
+	w.storageManipulator.ReplaceItemFromInventoryToStorage()
+	w.pressE()
+	w.Restart()
 }
 
 func (w *OilMan) holdOil() {
