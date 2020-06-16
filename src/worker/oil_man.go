@@ -76,6 +76,18 @@ func (w *OilMan) ToggleHoldTime() {
 	w.Restart()
 }
 
+func (w *OilMan) ReEnterWindow() {
+	w.Interrupt()
+
+	w.pressEsc()
+
+	<-time.After(time.Millisecond * 300)
+
+	w.pressE()
+
+	w.Restart()
+}
+
 func (w *OilMan) oil(checkCaptchaCh chan<- struct{}) {
 	fmt.Println("[*] Debug: Starting to oil")
 
@@ -141,6 +153,32 @@ func (w *OilMan) releaseOil() {
 	err := window.ActivatePidAndRun(w.pid, func() error {
 		robotgo.MouseToggle("up")
 		fmt.Println("[*] Debug: oil mouse key up")
+
+		return nil
+	})
+
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (w *OilMan) pressEsc () {
+	err := window.ActivatePidAndRun(w.pid, func() error {
+		robotgo.KeyTap("esc")
+		fmt.Println("[*] Debug: esc key tap")
+
+		return nil
+	})
+
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (w *OilMan) pressE () {
+	err := window.ActivatePidAndRun(w.pid, func() error {
+		robotgo.KeyTap("e")
+		fmt.Println("[*] Debug: e key tap")
 
 		return nil
 	})
