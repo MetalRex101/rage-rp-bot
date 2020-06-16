@@ -59,6 +59,11 @@ to quickly create a Cobra application.`,
 }
 
 func runClient(cmd *cobra.Command, args []string) error {
+	withStorage, err := cmd.Flags().GetBool("storage")
+	if err != nil {
+		return err
+	}
+
 	botType, err := getBotType(args)
 	if err != nil {
 		return err
@@ -77,7 +82,7 @@ func runClient(cmd *cobra.Command, args []string) error {
 	)
 	storageManipulator := storage.NewManipulator(pid)
 
-	w, err := worker.GetWorker(pid, botType, "e", captchaChecker, captchaSolver, storageManipulator)
+	w, err := worker.GetWorker(pid, botType, "e", captchaChecker, captchaSolver, storageManipulator, withStorage)
 	if err != nil {
 		return err
 	}

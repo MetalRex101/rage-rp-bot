@@ -14,10 +14,18 @@ type Worker interface {
 	ToggleHoldTime()
 }
 
-func GetWorker(pid int32, botType, btn string, checker *captcha.Checker, solver *captcha.Solver, manipulator *storage.Manipulator) (Worker, error) {
+func GetWorker(
+	pid int32,
+	botType,
+	btn string,
+	checker *captcha.Checker,
+	solver *captcha.Solver,
+	manipulator *storage.Manipulator,
+	withStorage bool,
+) (Worker, error) {
 	switch botType {
 	case "oil":
-		return NewOilMan(pid, checker, solver, manipulator), nil
+		return NewOilMan(pid, checker, solver, manipulator, withStorage), nil
 	case "mine":
 		return NewMiner(btn, pid), nil
 	}

@@ -33,12 +33,12 @@ var oilCoordinates = map[int]coordinates{
 	3: {595, 678},
 }
 
-func NewOilMan(pid int32, checker *captcha.Checker, solver *captcha.Solver, manipulator *storage.Manipulator) *OilMan {
+func NewOilMan(pid int32, checker *captcha.Checker, solver *captcha.Solver, manipulator *storage.Manipulator, withStorage bool) *OilMan {
 	return &OilMan{
 		pid:         pid,
 		running:     true,
 		holdTime:    oilHoldLongTime,
-		withStorage: true,
+		withStorage: withStorage,
 
 		captchaChecker:     checker,
 		captchaSolver:      solver,
@@ -193,6 +193,10 @@ func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
 }
 
 func (w *OilMan) moveBarrelsToStorageIfNeeded() {
+	if !w.withStorage {
+		return
+	}
+
 	w.barrelsCounter++
 	if w.barrelsCounter < maxBarrelsCountInInventory {
 		return
