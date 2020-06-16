@@ -12,16 +12,16 @@ type pixel struct {
 }
 
 type Manipulator struct {
-	pid int32
+	pid                     int32
 	inventoryFirstSlotPixel pixel
-	storageFirstSlotPixel pixel
+	storageFirstSlotPixel   pixel
 }
 
 func NewManipulator(pid int32) *Manipulator {
 	return &Manipulator{
-		pid: pid,
+		pid:                     pid,
 		inventoryFirstSlotPixel: pixel{x: 435, y: 334},
-		storageFirstSlotPixel: pixel{x: 1313, y: 365},
+		storageFirstSlotPixel:   pixel{x: 1313, y: 365},
 	}
 }
 
@@ -33,8 +33,9 @@ func (m *Manipulator) ReplaceItemFromInventoryToStorage() {
 
 func (m *Manipulator) openInventory() {
 	err := window.ActivatePidAndRun(m.pid, func() error {
+		<-time.After(time.Second)
 		robotgo.KeyTap("i")
-		time.Sleep(500 * time.Millisecond)
+		<-time.After(500 * time.Millisecond)
 
 		return nil
 	})
@@ -44,12 +45,14 @@ func (m *Manipulator) openInventory() {
 	}
 }
 
-func (m *Manipulator) replaceItem()  {
+func (m *Manipulator) replaceItem() {
 	err := window.ActivatePidAndRun(m.pid, func() error {
+		<-time.After(500 * time.Millisecond)
+
 		robotgo.Move(m.inventoryFirstSlotPixel.x, m.inventoryFirstSlotPixel.y)
 		robotgo.DragSmooth(m.storageFirstSlotPixel.x, m.storageFirstSlotPixel.y)
 
-		time.Sleep(500 * time.Millisecond)
+		<-time.After(500 * time.Millisecond)
 
 		return nil
 	})
@@ -61,8 +64,9 @@ func (m *Manipulator) replaceItem()  {
 
 func (m *Manipulator) closeInventory() {
 	err := window.ActivatePidAndRun(m.pid, func() error {
+		<-time.After(500 * time.Millisecond)
 		robotgo.KeyTap("esc")
-		time.Sleep(500 * time.Millisecond)
+		<-time.After(500 * time.Millisecond)
 
 		return nil
 	})

@@ -143,11 +143,6 @@ func (w *OilMan) oil() {
 				panic(fmt.Sprintf("unknown error: %s", err))
 			}
 
-			w.barrelsCounter++
-			if w.barrelsCounter >= maxBarrelsCountInInventory {
-				w.moveBarrelsToStorage()
-			}
-
 			time.Sleep(100 * time.Millisecond)
 
 			fmt.Println(fmt.Sprintf("[*] Debug: before send to oil ch"))
@@ -166,7 +161,7 @@ func (w *OilMan) oil() {
 }
 
 func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
-	if w.currentOil < 4 {
+	if !w.isOilMiningIterationFinished() {
 		return nil
 	}
 
@@ -185,6 +180,8 @@ func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
 		return nil
 	}
 
+	w.moveBarrelsToStorageIfNeeded()
+
 	if w.captchaNotAppearedTimes > 4 {
 		return captchaNotAppearedTooManyTimesErr
 	}
@@ -195,14 +192,22 @@ func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
 	return nil
 }
 
-func (w *OilMan) moveBarrelsToStorage() {
+func (w *OilMan) moveBarrelsToStorageIfNeeded() {
+	w.barrelsCounter++
+	if w.barrelsCounter < maxBarrelsCountInInventory {
+		return
+	}
 	w.barrelsCounter = 0
 
-	w.Interrupt()
 	w.pressEsc()
 	w.storageManipulator.ReplaceItemFromInventoryToStorage()
 	w.pressE()
-	w.Restart()
+
+	<-time.After(time.Second)
+}
+
+func (w *OilMan) isOilMiningIterationFinished() bool {
+	return w.currentOil == 4
 }
 
 func (w *OilMan) holdOil() {
