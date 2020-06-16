@@ -75,6 +75,10 @@ func (s *Solver) solve() (int, error) {
 
 		return 0, NoCaptchaAppearedErr
 	} else if err != nil {
+		//if err := s.processor.CleanUp(predictionId); err != nil {
+		//	fmt.Println(fmt.Sprintf("failed to clean up prediction [%d]: %s", predictionId, err))
+		//}
+
 		return 0, errors.Wrap(err, "failed to recognize captcha images")
 	}
 

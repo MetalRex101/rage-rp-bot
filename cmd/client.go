@@ -16,8 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
-	"github.com/go-vgo/robotgo"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"rp-bot-client/src/bot"
@@ -26,6 +24,7 @@ import (
 	"rp-bot-client/src/event"
 	"rp-bot-client/src/repainter"
 	"rp-bot-client/src/saver"
+	"rp-bot-client/src/window"
 	"rp-bot-client/src/worker"
 )
 
@@ -64,7 +63,7 @@ func runClient(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	pid, err := findGtaPid("GTA5.exe")
+	pid, err := window.FindGtaPid("GTA5.exe")
 	if err != nil {
 		return err
 	}
@@ -81,28 +80,6 @@ func runClient(cmd *cobra.Command, args []string) error {
 	)
 
 	return bot.NewBot(pid, w, captchaSolver, captcha.NewMouseManipulator(pid), event.NewEventListener()).Start()
-}
-
-func findGtaPid(name string) (int32, error) {
-	var pid int32 = -1
-
-	pc, err := robotgo.Process()
-	if err != nil {
-		return pid, err
-	}
-
-	for _, proc := range pc {
-		if proc.Name == name {
-			pid = proc.Pid
-			fmt.Println(fmt.Sprintf("%+v", proc))
-		}
-	}
-
-	if pid == -1 {
-		return pid, errors.New(fmt.Sprintf("process not found, %s", name))
-	}
-
-	return pid, nil
 }
 
 func getBotType(args []string) (string, error) {
