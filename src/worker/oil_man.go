@@ -103,6 +103,8 @@ func (w *OilMan) ReEnterWindow() {
 
 	w.pressE()
 
+	<-time.After(time.Second)
+
 	w.Restart()
 }
 
