@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	AnswerValidationErr  = errors.New("answer validation error: answer value should be between 1 and 3")
-	regexpValidationErr  = errors.New("question regexp validation failed")
+	AnswerValidationErr = errors.New("answer validation error: answer value should be between 1 and 3")
+	regexpValidationErr = errors.New("question regexp validation failed")
 )
 
 type recognitionType string
@@ -28,25 +28,51 @@ func NewRecognizer() *Recognizer {
 	return &Recognizer{}
 }
 
-type Recognizer struct {
+type questionMsg struct {
+	err              error
+	calculatedAnswer int
 }
+
+type answerMsg struct {
+	err    error
+	answers []int
+}
+
+type Recognizer struct{}
 
 // returns correct answer number: from 1 to 3
 func (r *Recognizer) recognizeAndSolve(predictionId int64) (int, error) {
-	t1, t2, err := r.parserQuestion(predictionId)
-	if err != nil {
-		return 0, err
+	questionCh, answerCh := make(chan questionMsg), make(chan answerMsg)
+
+	go func() {
+		t1, t2, err := r.parserQuestion(predictionId)
+		if err != nil {
+			questionCh <- questionMsg{err: err}
+		}
+
+		questionCh <- questionMsg{calculatedAnswer: t1 + t2}
+	}()
+
+	go func () {
+		answers, err := r.parseAnswers(predictionId)
+		if err != nil {
+			answerCh <- answerMsg{err: err}
+		}
+
+		answerCh <- answerMsg{answers: answers}
+	}()
+
+	qMsg := <- questionCh
+	if qMsg.err != nil {
+		return 0, errors.Wrap(qMsg.err, "failed to parse question")
+	}
+	aMsg := <- answerCh
+	if aMsg.err != nil {
+		return 0, errors.Wrap(aMsg.err, "failed to parse answers")
 	}
 
-	calculatedAnswer := t1 + t2
-
-	answers, err := r.parseAnswers(predictionId)
-	if err != nil {
-		return 0, err
-	}
-
-	for i, answer := range answers {
-		if answer == calculatedAnswer {
+	for i, answer := range aMsg.answers {
+		if answer == qMsg.calculatedAnswer {
 			return i + 1, nil
 		}
 	}
