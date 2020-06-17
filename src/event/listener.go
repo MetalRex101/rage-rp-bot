@@ -1,9 +1,9 @@
 package event
 
 import (
-	"fmt"
 	"github.com/go-vgo/robotgo"
 	hook "github.com/robotn/gohook"
+	log "github.com/sirupsen/logrus"
 )
 
 func NewEventListener() *Listener {
@@ -23,33 +23,33 @@ func (l *Listener) Start () <-chan Event {
 func (l *Listener) start() {
 	writeHelpMessage()
 	robotgo.EventHook(hook.KeyDown, []string{"o", "ctrl"}, func(e hook.Event) {
-		fmt.Println("ctrl-o: pause bot")
+		log.Debug("ctrl-o: pause bot")
 		l.outCh <- Event{T: pause}
-		fmt.Println("ctrl-o: event sent")
+		log.Debug("ctrl-o: event sent")
 	})
 
 	robotgo.EventHook(hook.KeyDown, []string{"r", "ctrl"}, func(e hook.Event) {
-		fmt.Println("ctrl-r: resume bot")
+		log.Debug("ctrl-r: resume bot")
 		l.outCh <- Event{T: resume}
-		fmt.Println("ctrl-r: event sent")
+		log.Debug("ctrl-r: event sent")
 	})
 
 	robotgo.EventHook(hook.KeyDown, []string{"t", "ctrl"}, func(e hook.Event) {
-		fmt.Println("ctrl-t: resume bot")
+		log.Debug("ctrl-t: restart bot")
 		l.outCh <- Event{T: restart}
-		fmt.Println("ctrl-t: event sent")
+		log.Debug("ctrl-t: event sent")
 	})
 
 	robotgo.EventHook(hook.KeyDown, []string{"y", "ctrl"}, func(e hook.Event) {
-		fmt.Println("ctrl-y: resume bot")
+		log.Debug("ctrl-y: toggle speed")
 		l.outCh <- Event{T: toggleHoldTime}
-		fmt.Println("ctrl-y: event sent")
+		log.Debug("ctrl-y: event sent")
 	})
 
 	robotgo.EventHook(hook.KeyDown, []string{"c", "ctrl"}, func(e hook.Event) {
-		fmt.Println("ctrl-c: stop bot. Exiting...")
+		log.Debug("ctrl-c: stop bot. Exiting...")
 		l.outCh <- Event{T: stop}
-		fmt.Println("ctrl-c: event sent")
+		log.Debug("ctrl-c: event sent")
 		robotgo.EventEnd()
 	})
 
@@ -65,9 +65,9 @@ func writeHelpMessage() {
 		"ctrl+y to toggle hold time for oilman",
 	}
 
-	fmt.Println("[*] Please use this keyboard shortcuts to control the bot: ")
+	log.Info("Please use this keyboard shortcuts to control the bot: ")
 
 	for _, msg := range shortcuts {
-		fmt.Println(fmt.Sprintf("--- %s ---", msg))
+		log.Infof("--- %s ---", msg)
 	}
 }

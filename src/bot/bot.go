@@ -3,6 +3,7 @@ package bot
 import (
 	"errors"
 	"fmt"
+	log "github.com/sirupsen/logrus"
 	"rp-bot-client/src/event"
 	"rp-bot-client/src/worker"
 )
@@ -42,7 +43,7 @@ func (b *Bot) mainLoop() {
 	eventCh := b.eventListener.Start()
 	b.worker.Start()
 
-	fmt.Println("[*] Bot have started")
+	log.Info("Bot have started")
 	for {
 		select {
 		case e := <-eventCh:

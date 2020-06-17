@@ -33,7 +33,8 @@ func (m *Manipulator) ReplaceItemFromInventoryToStorage() {
 
 func (m *Manipulator) openInventory() {
 	err := window.ActivatePidAndRun(m.pid, func() error {
-		<-time.After(time.Second)
+		// todo move to config to fit into client system requirements, make 1 sec as default
+		<-time.After(2 * time.Second)
 		robotgo.KeyTap("i")
 		<-time.After(500 * time.Millisecond)
 
