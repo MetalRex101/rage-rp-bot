@@ -3,6 +3,7 @@ package worker
 import (
 	"fmt"
 	"github.com/go-vgo/robotgo"
+	log "github.com/sirupsen/logrus"
 	"rp-bot-client/src/window"
 	"time"
 )
@@ -34,15 +35,15 @@ type Miner struct {
 }
 
 func (w *Miner) Interrupt() {
-	fmt.Println("[*] Debug: Before interrupt")
+	log.Debug("Before interrupt")
 	w.stateChan <- false
-	fmt.Println("[*] Debug: After interrupt")
+	log.Debug("After interrupt")
 }
 
 func (w *Miner) Resume() {
-	fmt.Println("[*] Debug: Before resume")
+	log.Debug("Before resume")
 	w.stateChan <- true
-	fmt.Println("[*] Debug: After resume")
+	log.Debug("After resume")
 }
 
 func (w *Miner) Restart() {

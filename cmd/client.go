@@ -24,6 +24,7 @@ import (
 	"rp-bot-client/src/event"
 	"rp-bot-client/src/repainter"
 	"rp-bot-client/src/saver"
+	"rp-bot-client/src/storage"
 	"rp-bot-client/src/window"
 	"rp-bot-client/src/worker"
 )
@@ -58,6 +59,11 @@ to quickly create a Cobra application.`,
 }
 
 func runClient(cmd *cobra.Command, args []string) error {
+	withStorage, err := cmd.Flags().GetBool("storage")
+	if err != nil {
+		return err
+	}
+
 	botType, err := getBotType(args)
 	if err != nil {
 		return err
@@ -74,8 +80,9 @@ func runClient(cmd *cobra.Command, args []string) error {
 		captcha.NewRecognizer(),
 		captcha.NewScreenshotProcessor(cropper.NewImage(repainter.NewImage()), saver.NewImg()),
 	)
+	storageManipulator := storage.NewManipulator(pid)
 
-	w, err := worker.GetWorker(pid, botType, "e", captchaChecker, captchaSolver)
+	w, err := worker.GetWorker(pid, botType, "e", captchaChecker, captchaSolver, storageManipulator, withStorage)
 	if err != nil {
 		return err
 	}

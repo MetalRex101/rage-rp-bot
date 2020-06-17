@@ -1,10 +1,11 @@
 package worker
 
 import (
-	"fmt"
 	"github.com/go-vgo/robotgo"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"rp-bot-client/src/captcha"
+	"rp-bot-client/src/storage"
 	"rp-bot-client/src/window"
 	"time"
 )
@@ -15,8 +16,9 @@ var (
 )
 
 const (
-	oilHoldShortTime = 3500 * time.Millisecond
-	oilHoldLongTime  = 4500 * time.Millisecond
+	oilHoldShortTime           = 3500 * time.Millisecond
+	oilHoldLongTime            = 4500 * time.Millisecond
+	maxBarrelsCountInInventory = 100
 )
 
 type coordinates struct {
@@ -31,14 +33,16 @@ var oilCoordinates = map[int]coordinates{
 	3: {595, 678},
 }
 
-func NewOilMan(pid int32, checker *captcha.Checker, solver *captcha.Solver) *OilMan {
+func NewOilMan(pid int32, checker *captcha.Checker, solver *captcha.Solver, manipulator *storage.Manipulator, withStorage bool) *OilMan {
 	return &OilMan{
-		pid:      pid,
-		running:  true,
-		holdTime: oilHoldLongTime,
+		pid:         pid,
+		running:     true,
+		holdTime:    oilHoldLongTime,
+		withStorage: withStorage,
 
-		captchaChecker: checker,
-		captchaSolver:  solver,
+		captchaChecker:     checker,
+		captchaSolver:      solver,
+		storageManipulator: manipulator,
 
 		stateChan: make(chan bool),
 	}
@@ -50,9 +54,12 @@ type OilMan struct {
 	captchaNotAppearedTimes int
 	currentOil              int
 	holdTime                time.Duration
+	withStorage             bool
+	barrelsCounter          int
 
-	captchaChecker *captcha.Checker
-	captchaSolver  *captcha.Solver
+	captchaChecker     *captcha.Checker
+	captchaSolver      *captcha.Solver
+	storageManipulator *storage.Manipulator
 
 	stateChan chan bool
 }
@@ -62,15 +69,15 @@ func (w *OilMan) Start() {
 }
 
 func (w *OilMan) Interrupt() {
-	fmt.Println("[*] Debug: Before interrupt")
+	log.Debug("Before interrupt")
 	w.stateChan <- false
-	fmt.Println("[*] Debug: After interrupt")
+	log.Debug("After interrupt")
 }
 
 func (w *OilMan) Resume() {
-	fmt.Println("[*] Debug: Before resume")
+	log.Debug("Before resume")
 	w.stateChan <- true
-	fmt.Println("[*] Debug: After resume")
+	log.Debug("After resume")
 }
 
 func (w *OilMan) Restart() {
@@ -96,11 +103,14 @@ func (w *OilMan) ReEnterWindow() {
 
 	w.pressE()
 
+	// todo move to config to fit into client system requirements, make 1 sec as default
+	<-time.After(2 * time.Second)
+
 	w.Restart()
 }
 
 func (w *OilMan) oil() {
-	fmt.Println("[*] Debug: Starting to oil")
+	log.Debug("Starting to oil")
 
 	oilCh := make(chan struct{})
 
@@ -116,45 +126,44 @@ func (w *OilMan) oil() {
 			}
 			w.holdOil()
 			timer.Reset(w.holdTime)
-		// hold 6 sec to activate animation
 		case <-timer.C:
-			fmt.Println(fmt.Sprintf("[*] Debug: current oil: %d", w.currentOil))
-			w.currentOil++
-			w.releaseOil()
-			err := w.checkCaptchaAndSolveIfNeeded()
-			if errors.Is(err, captchaSolveErr) {
-				fmt.Println(fmt.Sprintf("[*] Debug: %s. Reentering window", err))
-				go w.ReEnterWindow()
-				continue
-			} else if errors.Is(err, captchaNotAppearedTooManyTimesErr) {
-				fmt.Println(fmt.Sprintf("[*] Debug: %s. Reentering window", err))
+			if err := w.releaseOilAndCheckCaptcha(); err != nil {
+				log.WithError(err).Error("failed to check of solve captcha")
 				go w.ReEnterWindow()
 				continue
 			}
 
-			if err != nil {
-				panic(fmt.Sprintf("unknown error: %s", err))
-			}
-
-			time.Sleep(100 * time.Millisecond)
-
-			fmt.Println(fmt.Sprintf("[*] Debug: before send to oil ch"))
+			log.Debug("before send to oil ch")
 			go func() { oilCh <- struct{}{} }()
-			fmt.Println(fmt.Sprintf("[*] Debug: after send to oil ch"))
+			log.Debug("after send to oil ch")
 		case w.running = <-w.stateChan:
 			if !w.running {
 				w.releaseOil()
-				fmt.Println("[*] Debug: Oilman was interrupted")
+				log.Debug("Oilman was interrupted")
 			} else {
 				go func() { oilCh <- struct{}{} }()
-				fmt.Println("[*] Debug: Oilman was resumed")
+				log.Debug("Oilman was resumed")
 			}
 		}
 	}
 }
 
+func (w *OilMan) releaseOilAndCheckCaptcha() error {
+	log.Debugf("current oil: %d", w.currentOil)
+	w.currentOil++
+	w.releaseOil()
+	err := w.checkCaptchaAndSolveIfNeeded()
+	if errors.Is(err, captchaSolveErr) || errors.Is(err, captchaNotAppearedTooManyTimesErr) {
+		return err
+	} else if err != nil {
+		log.WithError(err).Fatalf("unknown error")
+	}
+
+	time.Sleep(100 * time.Millisecond)
+}
+
 func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
-	if w.currentOil < 4 {
+	if !w.isOilMiningIterationFinished() {
 		return nil
 	}
 
@@ -162,10 +171,10 @@ func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
 
 	// worker finished to oil - time to check captcha
 	if w.captchaChecker.IsCaptchaAppeared(w.pid) {
-		fmt.Println(fmt.Sprintf("[*] Debug: captcha appeared: solving..."))
+		log.Info("captcha appeared: solving...")
 		w.captchaNotAppearedTimes = 0
 		if err := w.captchaSolver.Solve(); err != nil {
-			fmt.Println(fmt.Sprintf("[*] Debug: %s", err))
+			log.WithError(err).Error("failed to solve captcha")
 
 			return captchaSolveErr
 		}
@@ -173,14 +182,38 @@ func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
 		return nil
 	}
 
+	w.moveBarrelsToStorageIfNeeded()
+
 	if w.captchaNotAppearedTimes > 4 {
 		return captchaNotAppearedTooManyTimesErr
 	}
 
 	w.captchaNotAppearedTimes++
-	fmt.Println(fmt.Sprintf("[*] Debug: Captcha not appeared times: %d", w.captchaNotAppearedTimes))
+	log.Debugf("Captcha not appeared times: %d", w.captchaNotAppearedTimes))
 
 	return nil
+}
+
+func (w *OilMan) moveBarrelsToStorageIfNeeded() {
+	if !w.withStorage {
+		return
+	}
+
+	w.barrelsCounter++
+	if w.barrelsCounter < maxBarrelsCountInInventory {
+		return
+	}
+	w.barrelsCounter = 0
+
+	w.pressEsc()
+	w.storageManipulator.ReplaceItemFromInventoryToStorage()
+	w.pressE()
+
+	<-time.After(time.Second)
+}
+
+func (w *OilMan) isOilMiningIterationFinished() bool {
+	return w.currentOil == 4
 }
 
 func (w *OilMan) holdOil() {
@@ -188,7 +221,7 @@ func (w *OilMan) holdOil() {
 		coord := oilCoordinates[w.currentOil]
 		robotgo.Move(coord.x, coord.y)
 		robotgo.MouseToggle("down")
-		fmt.Println("[*] Debug: oil mouse key down")
+		log.Debug("oil mouse key down")
 
 		return nil
 	})
@@ -201,7 +234,7 @@ func (w *OilMan) holdOil() {
 func (w *OilMan) releaseOil() {
 	err := window.ActivatePidAndRun(w.pid, func() error {
 		robotgo.MouseToggle("up")
-		fmt.Println("[*] Debug: oil mouse key up")
+		log.Debug("oil mouse key up")
 
 		return nil
 	})
@@ -214,7 +247,7 @@ func (w *OilMan) releaseOil() {
 func (w *OilMan) pressEsc() {
 	err := window.ActivatePidAndRun(w.pid, func() error {
 		robotgo.KeyTap("esc")
-		fmt.Println("[*] Debug: esc key tap")
+		log.Debug("esc key tap")
 
 		return nil
 	})
@@ -227,7 +260,7 @@ func (w *OilMan) pressEsc() {
 func (w *OilMan) pressE() {
 	err := window.ActivatePidAndRun(w.pid, func() error {
 		robotgo.KeyTap("e")
-		fmt.Println("[*] Debug: e key tap")
+		log.Debug("e key tap")
 
 		return nil
 	})

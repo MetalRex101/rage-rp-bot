@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/go-vgo/robotgo"
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/image/bmp"
 	"image"
 )
@@ -31,18 +32,18 @@ type Solver struct {
 func (s *Solver) Solve() error {
 	screenshot, err := s.takeScreenShot(s.pid)
 	if err != nil {
-		panic(fmt.Sprintf("failed to take screenshot: %s", err))
+		log.WithError(err).Fatalf("failed to take screenshot")
 	}
 
 	predictionId, err := s.processor.ProcessAndSave(screenshot)
 	if err != nil {
-		panic(fmt.Sprintf("failed to process screenshot: %s", err))
+		log.WithError(err).Fatalf("failed to process screenshot")
 	}
 
 	answerNum, err := s.client.recognizeAndSolve(predictionId)
 	if err != nil {
 		//if err := s.processor.CleanUp(predictionId); err != nil {
-		//	fmt.Println(fmt.Sprintf("failed to clean up prediction [%d]: %s", predictionId, err))
+		//	log.WithError(err).WithField("prediction_id", predictionId).Errorf("failed to clean up prediction")
 		//}
 
 		return errors.Wrap(err, "failed to recognize captcha images")
@@ -52,10 +53,10 @@ func (s *Solver) Solve() error {
 		return errors.Wrap(err, "failed to answer to captcha with manipulator")
 	}
 
-	fmt.Println("[*] Debug: captcha appeared and solved!")
+	log.Info("captcha appeared and solved!")
 
 	if err := s.processor.CleanUp(predictionId); err != nil {
-		fmt.Println(fmt.Sprintf("failed to clean up prediction [%d]: %s", predictionId, err))
+		log.WithError(err).WithField("prediction_id", predictionId).Errorf("failed to clean up prediction")
 	}
 
 	return nil

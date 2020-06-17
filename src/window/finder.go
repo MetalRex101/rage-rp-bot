@@ -17,7 +17,6 @@ func FindGtaPid(name string) (int32, error) {
 	for _, proc := range pc {
 		if proc.Name == name {
 			pid = proc.Pid
-			fmt.Println(fmt.Sprintf("%+v", proc))
 		}
 	}
 
