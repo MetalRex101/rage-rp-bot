@@ -160,6 +160,8 @@ func (w *OilMan) releaseOilAndCheckCaptcha() error {
 	}
 
 	time.Sleep(100 * time.Millisecond)
+
+	return nil
 }
 
 func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
@@ -189,7 +191,7 @@ func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
 	}
 
 	w.captchaNotAppearedTimes++
-	log.Debugf("Captcha not appeared times: %d", w.captchaNotAppearedTimes))
+	log.Debugf("Captcha not appeared times: %d", w.captchaNotAppearedTimes)
 
 	return nil
 }

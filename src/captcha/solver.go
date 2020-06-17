@@ -2,7 +2,6 @@ package captcha
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/go-vgo/robotgo"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
