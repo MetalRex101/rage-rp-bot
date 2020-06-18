@@ -20,6 +20,7 @@ import (
 	"github.com/spf13/cobra"
 	"rp-bot-client/src/bot"
 	"rp-bot-client/src/captcha"
+	"rp-bot-client/src/captcha/recognizer"
 	"rp-bot-client/src/cropper"
 	"rp-bot-client/src/event"
 	"rp-bot-client/src/repainter"
@@ -74,12 +75,14 @@ func runClient(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	r, err := recognizer.Get(recognizer.GOCR)
+	if err != nil {
+		return err
+	}
+
 	captchaChecker := captcha.NewChecker()
-	captchaSolver := captcha.NewSolver(
-		pid,
-		captcha.NewRecognizer(),
-		captcha.NewScreenshotProcessor(cropper.NewImage(repainter.NewImage()), saver.NewImg()),
-	)
+	captchaSolver := captcha.NewSolver(pid, r,
+		captcha.NewScreenshotProcessor(cropper.NewImage(repainter.NewImage()), saver.NewImg()))
 	storageManipulator := storage.NewManipulator(pid)
 
 	w, err := worker.GetWorker(pid, botType, "e", captchaChecker, captchaSolver, storageManipulator, withStorage)

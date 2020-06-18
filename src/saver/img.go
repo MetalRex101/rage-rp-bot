@@ -2,8 +2,8 @@ package saver
 
 import (
 	"fmt"
+	pnm "github.com/jbuchbinder/gopnm"
 	"image"
-	"image/jpeg"
 	"os"
 	"path/filepath"
 	"strings"
@@ -37,7 +37,8 @@ func (s *Img) saveToFile(img image.Image, path string) (string, error) {
 	defer f.Close()
 
 	// return path, png.Encode(f, img)
-	return path, jpeg.Encode(f, img, &jpeg.Options{Quality: 100})
+
+	return path, pnm.Encode(f, img, 0)
 }
 
 func (s *Img) SaveAnswerToDataset(img image.Image, datasetNum, answerNum int, screenName string) (string, error) {
@@ -60,13 +61,13 @@ func (s *Img) SaveAnswerToDataset(img image.Image, datasetNum, answerNum int, sc
 }
 
 func (s *Img) SaveAnswer(img image.Image, answerNum int, predictionId int64) (string, error) {
-	path := fmt.Sprintf("%s/%d/answers/answer_%d.jpg", predictionsBasePathTpl, predictionId, answerNum)
+	path := fmt.Sprintf("%s/%d/answers/answer_%d.pbm", predictionsBasePathTpl, predictionId, answerNum)
 
 	return s.saveToFile(img, path)
 }
 
 func (s *Img) SaveQuestion(img image.Image, predictionId int64) (string, error) {
-	path := fmt.Sprintf("%s/%d/question/question.jpg", predictionsBasePathTpl, predictionId)
+	path := fmt.Sprintf("%s/%d/question/question.pbm", predictionsBasePathTpl, predictionId)
 
 	return s.saveToFile(img, path)
 }

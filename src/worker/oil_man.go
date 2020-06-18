@@ -149,9 +149,9 @@ func (w *OilMan) oil() {
 }
 
 func (w *OilMan) releaseOilAndCheckCaptcha() error {
-	log.Debugf("current oil: %d", w.currentOil)
-	w.currentOil++
+	log.Debugf("current oil: %d", w.currentOil + 1)
 	w.releaseOil()
+	w.currentOil++
 	err := w.checkCaptchaAndSolveIfNeeded()
 	if errors.Is(err, captchaSolveErr) || errors.Is(err, captchaNotAppearedTooManyTimesErr) {
 		return err
@@ -165,11 +165,11 @@ func (w *OilMan) releaseOilAndCheckCaptcha() error {
 }
 
 func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
-	if !w.isOilMiningIterationFinished() {
-		return nil
-	}
-
-	defer func() { w.currentOil = 0 }()
+	defer func() {
+		if w.isOilMiningIterationFinished() {
+			w.currentOil = 0
+		}
+	}()
 
 	// worker finished to oil - time to check captcha
 	if w.captchaChecker.IsCaptchaAppeared(w.pid) {
@@ -186,7 +186,8 @@ func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
 
 	w.moveBarrelsToStorageIfNeeded()
 
-	if w.captchaNotAppearedTimes > 4 {
+	// 4 iterations
+	if w.captchaNotAppearedTimes > (4 * 4) {
 		return captchaNotAppearedTooManyTimesErr
 	}
 
@@ -221,8 +222,11 @@ func (w *OilMan) isOilMiningIterationFinished() bool {
 func (w *OilMan) holdOil() {
 	err := window.ActivatePidAndRun(w.pid, func() error {
 		coord := oilCoordinates[w.currentOil]
+		time.Sleep(20 * time.Millisecond)
 		robotgo.Move(coord.x, coord.y)
+		time.Sleep(20 * time.Millisecond)
 		robotgo.MouseToggle("down")
+		time.Sleep(20 * time.Millisecond)
 		log.Debug("oil mouse key down")
 
 		return nil
