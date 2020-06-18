@@ -97,6 +97,7 @@ func (r *gocr) parseAnswers(predictionId int64) ([]int, error) {
 		}
 
 		answerStr = strings.TrimSpace(answerStr)
+		answerStr = strings.ReplaceAll(answerStr, "_", "-")
 
 		answer, err := strconv.Atoi(answerStr)
 		if err != nil {
