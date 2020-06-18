@@ -9,7 +9,7 @@ require (
 	github.com/oliamb/cutter v0.2.2
 	github.com/pkg/errors v0.9.0
 	github.com/robotn/gohook v0.30.2
-	github.com/sirupsen/logrus v1.2.0
+	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/cobra v1.0.0
 	github.com/spf13/viper v1.4.0
 	golang.org/x/image v0.0.0-20200430140353-33d19683fad8

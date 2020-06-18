@@ -15,7 +15,7 @@ var (
 
 const (
 	maxBarrelsCountInInventory = 100
-	oilsCount = 4
+	oilsCount                  = 4
 )
 
 func NewOilMan(
@@ -144,7 +144,7 @@ func (w *OilMan) solveCaptchaIfNeeded() (bool, error) {
 func (w *OilMan) checkCaptchaAndSolveIfNeeded() (bool, error) {
 	defer func() {
 		if w.isOilMiningIterationFinished() {
-			log.Debug("Oli mining iteration has finished")
+			log.Debug("Oil mining iteration has finished")
 			w.moveBarrelsToStorageIfNeeded()
 			w.currentOil = 0
 		}

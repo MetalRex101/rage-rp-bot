@@ -14,7 +14,7 @@ type Listener struct {
 	outCh chan Event
 }
 
-func (l *Listener) Start () <-chan Event {
+func (l *Listener) Start() <-chan Event {
 	go l.start()
 
 	return l.outCh
@@ -62,7 +62,6 @@ func writeHelpMessage() {
 		"ctrl+r to resume bot",
 		"ctrl+c to stop bot",
 		"ctrl+t to restart bot",
-		"ctrl+y to toggle hold time for oilman",
 	}
 
 	log.Info("Please use this keyboard shortcuts to control the bot: ")

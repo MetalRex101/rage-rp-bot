@@ -7,7 +7,8 @@ import (
 	"time"
 )
 
-const oilDoneHexColor = ""
+const oilDoneHexColorFirst = "c1c1c1"
+const oilDoneHexColorSecond = "ffffff"
 
 type coordinates struct {
 	x int
@@ -53,17 +54,57 @@ func (m *OilManipulator) holdOil(currentOil int) {
 }
 
 func (m *OilManipulator) releaseOilOnDone(currentOil int) {
-	coordinates := m.oilCoordinates[currentOil]
-
-	for {
-		color := robotgo.GetPixelColor(coordinates.x, coordinates.y)
-		if color == oilDoneHexColor {
-			m.releaseOil()
-			return
-		}
-
-		<-time.After(300 * time.Millisecond)
+	log.Info("waiting to release oil")
+	if currentOil == 3 {
+		m.releaseLastOilOnDone()
+		return
 	}
+
+	err := window.ActivatePidAndRun(m.pid, func() error {
+		coordinates := m.oilCoordinates[currentOil]
+
+		for {
+			color := robotgo.GetPixelColor(coordinates.x, coordinates.y)
+			if m.oilHasDoneColor(color) {
+				log.Info("oil done")
+				m.releaseOil()
+				return nil
+			}
+		}
+	})
+
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (m *OilManipulator) releaseLastOilOnDone() {
+	log.Info("process last oil")
+
+	err := window.ActivatePidAndRun(m.pid, func() error {
+		for {
+			allFinished := true
+			for _, coordinates := range m.oilCoordinates {
+				newColor := robotgo.GetPixelColor(coordinates.x, coordinates.y)
+				log.Info(coordinates, newColor)
+				if m.oilHasDoneColor(newColor) {
+					allFinished = false
+				}
+			}
+			if allFinished {
+				log.Info("last oil done")
+				m.releaseOil()
+				return nil
+			}
+
+			<-time.After(300 * time.Millisecond)
+		}
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
 }
 
 func (m *OilManipulator) releaseOil() {
@@ -117,4 +158,8 @@ func (m *OilManipulator) pressE() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (m *OilManipulator) oilHasDoneColor(color string) bool {
+	return color == oilDoneHexColorFirst || color == oilDoneHexColorSecond
 }

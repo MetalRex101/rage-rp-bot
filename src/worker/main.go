@@ -11,7 +11,6 @@ type Worker interface {
 	Restart()
 	Resume()
 	Interrupt()
-	ToggleHoldTime()
 }
 
 func GetWorker(
