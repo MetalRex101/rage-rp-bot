@@ -1,12 +1,10 @@
 package worker
 
 import (
-	"github.com/go-vgo/robotgo"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"rp-bot-client/src/captcha"
 	"rp-bot-client/src/storage"
-	"rp-bot-client/src/window"
 	"time"
 )
 
@@ -16,33 +14,26 @@ var (
 )
 
 const (
-	oilHoldShortTime           = 3500 * time.Millisecond
-	oilHoldLongTime            = 4500 * time.Millisecond
 	maxBarrelsCountInInventory = 100
+	oilsCount = 4
 )
 
-type coordinates struct {
-	x int
-	y int
-}
-
-var oilCoordinates = map[int]coordinates{
-	0: {283, 675},
-	1: {388, 672},
-	2: {494, 673},
-	3: {595, 678},
-}
-
-func NewOilMan(pid int32, checker *captcha.Checker, solver *captcha.Solver, manipulator *storage.Manipulator, withStorage bool) *OilMan {
+func NewOilMan(
+	pid int32,
+	checker *captcha.Checker,
+	solver *captcha.Solver,
+	storageManipulator *storage.Manipulator,
+	withStorage bool,
+) *OilMan {
 	return &OilMan{
 		pid:         pid,
 		running:     true,
-		holdTime:    oilHoldLongTime,
 		withStorage: withStorage,
 
+		oilManipulator:     newOilManipulator(pid),
 		captchaChecker:     checker,
 		captchaSolver:      solver,
-		storageManipulator: manipulator,
+		storageManipulator: storageManipulator,
 
 		stateChan: make(chan bool),
 	}
@@ -53,10 +44,10 @@ type OilMan struct {
 	running                 bool
 	captchaNotAppearedTimes int
 	currentOil              int
-	holdTime                time.Duration
 	withStorage             bool
 	barrelsCounter          int
 
+	oilManipulator     *OilManipulator
 	captchaChecker     *captcha.Checker
 	captchaSolver      *captcha.Solver
 	storageManipulator *storage.Manipulator
@@ -87,25 +78,8 @@ func (w *OilMan) Restart() {
 	w.Resume()
 }
 
-func (w *OilMan) ToggleHoldTime() {
-	if w.holdTime == oilHoldLongTime {
-		w.holdTime = oilHoldShortTime
-	} else {
-		w.holdTime = oilHoldLongTime
-	}
-	w.Restart()
-}
-
-func (w *OilMan) ReEnterWindow() {
-	w.pressEsc()
-
-	<-time.After(time.Millisecond * 300)
-
-	w.pressE()
-
-	// todo move to config to fit into client system requirements, make 1 sec as default
-	<-time.After(2 * time.Second)
-
+func (w *OilMan) RestartWithReopen() {
+	w.oilManipulator.ReOpenWindow()
 	w.Restart()
 }
 
@@ -114,9 +88,6 @@ func (w *OilMan) oil() {
 
 	oilCh := make(chan struct{})
 
-	w.holdOil()
-	timer := time.NewTimer(w.holdTime)
-
 	for {
 		select {
 		case <-oilCh:
@@ -124,14 +95,19 @@ func (w *OilMan) oil() {
 				time.Sleep(100 * time.Millisecond)
 				continue
 			}
-			w.holdOil()
-			timer.Reset(w.holdTime)
-		case <-timer.C:
-			if solved, err := w.releaseOilAndCheckCaptcha(); err != nil {
-				log.WithError(err).Error("failed to check of solve captcha")
-				go w.ReEnterWindow()
+
+			w.oilManipulator.holdOil(w.currentOil)
+			w.oilManipulator.releaseOilOnDone(w.currentOil)
+
+			w.currentOil++
+
+			solved, err := w.solveCaptchaIfNeeded()
+			if err != nil {
+				log.WithError(err).Error("failed to check or solve captcha")
+				go w.RestartWithReopen()
 				continue
-			} else if solved {
+			}
+			if solved {
 				go w.Restart()
 				continue
 			}
@@ -141,7 +117,7 @@ func (w *OilMan) oil() {
 			log.Debug("after send to oil ch")
 		case w.running = <-w.stateChan:
 			if !w.running {
-				w.releaseOil()
+				w.oilManipulator.releaseOil()
 				log.Debug("Oilman was interrupted")
 			} else {
 				go func() { oilCh <- struct{}{} }()
@@ -151,10 +127,8 @@ func (w *OilMan) oil() {
 	}
 }
 
-func (w *OilMan) releaseOilAndCheckCaptcha() (bool, error) {
-	log.Debugf("current oil: %d", w.currentOil + 1)
-	w.releaseOil()
-	w.currentOil++
+func (w *OilMan) solveCaptchaIfNeeded() (bool, error) {
+	log.Debugf("current oil: %d", w.currentOil)
 	solved, err := w.checkCaptchaAndSolveIfNeeded()
 	if errors.Is(err, captchaSolveErr) || errors.Is(err, captchaNotAppearedTooManyTimesErr) {
 		return false, err
@@ -170,6 +144,7 @@ func (w *OilMan) releaseOilAndCheckCaptcha() (bool, error) {
 func (w *OilMan) checkCaptchaAndSolveIfNeeded() (bool, error) {
 	defer func() {
 		if w.isOilMiningIterationFinished() {
+			log.Debug("Oli mining iteration has finished")
 			w.moveBarrelsToStorageIfNeeded()
 			w.currentOil = 0
 		}
@@ -210,70 +185,13 @@ func (w *OilMan) moveBarrelsToStorageIfNeeded() {
 	}
 	w.barrelsCounter = 0
 
-	w.pressEsc()
+	w.oilManipulator.pressEsc()
 	w.storageManipulator.ReplaceItemFromInventoryToStorage()
-	w.pressE()
+	w.oilManipulator.pressE()
 
 	<-time.After(time.Second)
 }
 
 func (w *OilMan) isOilMiningIterationFinished() bool {
-	return w.currentOil == 4
-}
-
-func (w *OilMan) holdOil() {
-	err := window.ActivatePidAndRun(w.pid, func() error {
-		coord := oilCoordinates[w.currentOil]
-		time.Sleep(20 * time.Millisecond)
-		robotgo.Move(coord.x, coord.y)
-		time.Sleep(20 * time.Millisecond)
-		robotgo.MouseToggle("down")
-		time.Sleep(20 * time.Millisecond)
-		log.Debug("oil mouse key down")
-
-		return nil
-	})
-
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (w *OilMan) releaseOil() {
-	err := window.ActivatePidAndRun(w.pid, func() error {
-		robotgo.MouseToggle("up")
-		log.Debug("oil mouse key up")
-
-		return nil
-	})
-
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (w *OilMan) pressEsc() {
-	err := window.ActivatePidAndRun(w.pid, func() error {
-		robotgo.KeyTap("esc")
-		log.Debug("esc key tap")
-
-		return nil
-	})
-
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (w *OilMan) pressE() {
-	err := window.ActivatePidAndRun(w.pid, func() error {
-		robotgo.KeyTap("e")
-		log.Debug("e key tap")
-
-		return nil
-	})
-
-	if err != nil {
-		panic(err)
-	}
+	return w.currentOil == oilsCount
 }
