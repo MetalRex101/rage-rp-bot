@@ -188,8 +188,8 @@ func (w *OilMan) checkCaptchaAndSolveIfNeeded() (bool, error) {
 		return true, nil
 	}
 
-	// 4 iterations
-	if w.captchaNotAppearedTimes > (4 * 4) {
+	// 5 iterations
+	if w.captchaNotAppearedTimes > 20 {
 		return false, captchaNotAppearedTooManyTimesErr
 	}
 
