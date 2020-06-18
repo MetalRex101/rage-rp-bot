@@ -127,9 +127,12 @@ func (w *OilMan) oil() {
 			w.holdOil()
 			timer.Reset(w.holdTime)
 		case <-timer.C:
-			if err := w.releaseOilAndCheckCaptcha(); err != nil {
+			if solved, err := w.releaseOilAndCheckCaptcha(); err != nil {
 				log.WithError(err).Error("failed to check of solve captcha")
 				go w.ReEnterWindow()
+				continue
+			} else if solved {
+				go w.Restart()
 				continue
 			}
 
@@ -148,25 +151,26 @@ func (w *OilMan) oil() {
 	}
 }
 
-func (w *OilMan) releaseOilAndCheckCaptcha() error {
+func (w *OilMan) releaseOilAndCheckCaptcha() (bool, error) {
 	log.Debugf("current oil: %d", w.currentOil + 1)
 	w.releaseOil()
 	w.currentOil++
-	err := w.checkCaptchaAndSolveIfNeeded()
+	solved, err := w.checkCaptchaAndSolveIfNeeded()
 	if errors.Is(err, captchaSolveErr) || errors.Is(err, captchaNotAppearedTooManyTimesErr) {
-		return err
+		return false, err
 	} else if err != nil {
 		log.WithError(err).Fatalf("unknown error")
 	}
 
 	time.Sleep(100 * time.Millisecond)
 
-	return nil
+	return solved, nil
 }
 
-func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
+func (w *OilMan) checkCaptchaAndSolveIfNeeded() (bool, error) {
 	defer func() {
 		if w.isOilMiningIterationFinished() {
+			w.moveBarrelsToStorageIfNeeded()
 			w.currentOil = 0
 		}
 	}()
@@ -178,23 +182,21 @@ func (w *OilMan) checkCaptchaAndSolveIfNeeded() error {
 		if err := w.captchaSolver.Solve(); err != nil {
 			log.WithError(err).Error("failed to solve captcha")
 
-			return captchaSolveErr
+			return false, captchaSolveErr
 		}
 
-		return nil
+		return true, nil
 	}
-
-	w.moveBarrelsToStorageIfNeeded()
 
 	// 4 iterations
 	if w.captchaNotAppearedTimes > (4 * 4) {
-		return captchaNotAppearedTooManyTimesErr
+		return false, captchaNotAppearedTooManyTimesErr
 	}
 
 	w.captchaNotAppearedTimes++
 	log.Debugf("Captcha not appeared times: %d", w.captchaNotAppearedTimes)
 
-	return nil
+	return false, nil
 }
 
 func (w *OilMan) moveBarrelsToStorageIfNeeded() {
