@@ -1,6 +1,8 @@
 package worker
 
 import (
+	"context"
+	"fmt"
 	"github.com/go-vgo/robotgo"
 	log "github.com/sirupsen/logrus"
 	"rp-bot-client/src/window"
@@ -17,88 +19,121 @@ type coordinates struct {
 
 type OilManipulator struct {
 	pid            int32
-	oilCoordinates map[int]coordinates
+	oilCoordinates []coordinates
 }
 
 func newOilManipulator(pid int32) *OilManipulator {
 	return &OilManipulator{
 		pid: pid,
-		oilCoordinates: map[int]coordinates{
-			0: {283, 675},
-			1: {388, 672},
-			2: {494, 673},
-			3: {595, 678},
+		oilCoordinates: []coordinates{
+			{283, 675},
+			{388, 672},
+			{494, 673},
+			{595, 678},
 		},
 	}
 }
 
-func (m *OilManipulator) holdOil(currentOil int) {
+func (m *OilManipulator) holdOil() coordinates {
+	var oilToHoldCoordinates coordinates
+
 	err := window.ActivatePidAndRun(m.pid, func() error {
 		<-time.After(100 * time.Millisecond)
 
-		coordinates := m.oilCoordinates[currentOil]
-		robotgo.Move(coordinates.x, coordinates.y)
+		for _, coordinates := range m.oilCoordinates {
+			if !m.oilHasDoneColor(robotgo.GetPixelColor(coordinates.x, coordinates.y)) {
+				oilToHoldCoordinates = coordinates
+				break
+			}
+		}
+
+		robotgo.Move(oilToHoldCoordinates.x, oilToHoldCoordinates.y)
 
 		<-time.After(100 * time.Millisecond)
 
 		robotgo.MouseToggle("down")
 
-		log.Debug("oil mouse key down")
+		log.Debug(fmt.Sprintf("oil mouse key down on coordinates %v", oilToHoldCoordinates))
 
 		return nil
 	})
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+
+	return oilToHoldCoordinates
 }
 
-func (m *OilManipulator) releaseOilOnDone(currentOil int) {
-	if currentOil == 3 {
-		m.releaseLastOilOnDone()
-		return
+func (m *OilManipulator) releaseOilOnDone(heldOilCoordinates coordinates, ctx context.Context) bool {
+	if m.getDoneOilsCount() == 3 {
+		m.releaseLastOilOnDone(ctx)
+		return true
 	}
 
-	err := window.ActivatePidAndRun(m.pid, func() error {
-		coordinates := m.oilCoordinates[currentOil]
+	log.Debug("Waiting to release oil")
 
+	err := window.ActivatePidAndRun(m.pid, func() error {
 		for {
-			color := robotgo.GetPixelColor(coordinates.x, coordinates.y)
-			if m.oilHasDoneColor(color) {
+			select {
+			case <-ctx.Done():
 				m.releaseOil()
+				log.Debug(fmt.Sprintf("oil with coordinates: %v has been released by timeout", heldOilCoordinates))
 				return nil
-			}
-		}
-	})
-
-	if err != nil {
-		panic(err)
-	}
-}
-
-func (m *OilManipulator) releaseLastOilOnDone() {
-	err := window.ActivatePidAndRun(m.pid, func() error {
-		for {
-			allFinished := true
-			for _, coordinates := range m.oilCoordinates {
-				newColor := robotgo.GetPixelColor(coordinates.x, coordinates.y)
-				if m.oilHasDoneColor(newColor) {
-					allFinished = false
+			default:
+				color := robotgo.GetPixelColor(heldOilCoordinates.x, heldOilCoordinates.y)
+				log.Debug(fmt.Sprintf("current oil: coordinates: %v color: %s", heldOilCoordinates, color))
+				if m.oilHasDoneColor(color) {
+					m.releaseOil()
+					return nil
 				}
-			}
-			if allFinished {
-				m.releaseOil()
-				return nil
 			}
 
 			<-time.After(300 * time.Millisecond)
 		}
 	})
-
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
+	log.Debug("Oil released")
+
+	return false
+}
+
+func (m *OilManipulator) releaseLastOilOnDone(ctx context.Context) {
+	log.Debug("Waiting to release last oil")
+
+	err := window.ActivatePidAndRun(m.pid, func() error {
+		for {
+			select {
+			case <-ctx.Done():
+				log.Debug("last oil has been released by timeout")
+				m.releaseOil()
+				return nil
+			default:
+				allFinished := true
+				for _, coordinates := range m.oilCoordinates {
+					newColor := robotgo.GetPixelColor(coordinates.x, coordinates.y)
+					log.Debug(fmt.Sprintf("Oil with coordinates %d:%d has color %s", coordinates.x, coordinates.y, newColor))
+					if m.oilHasDoneColor(newColor) {
+						allFinished = false
+					}
+				}
+				if allFinished {
+					m.releaseOil()
+					return nil
+				}
+			}
+
+			<-time.After(300 * time.Millisecond)
+		}
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	log.Debug("last oil released")
 }
 
 func (m *OilManipulator) releaseOil() {
@@ -113,7 +148,7 @@ func (m *OilManipulator) releaseOil() {
 	})
 
 	if err != nil {
-		panic(err)
+		log.Debug(err)
 	}
 }
 
@@ -150,8 +185,27 @@ func (m *OilManipulator) pressE() {
 	})
 
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
+}
+
+func (m *OilManipulator) getDoneOilsCount() int {
+	doneOilsCount := 0
+
+	err := window.ActivatePidAndRun(m.pid, func() error {
+		for _, coordinates := range m.oilCoordinates {
+			if m.oilHasDoneColor(robotgo.GetPixelColor(coordinates.x, coordinates.y)) {
+				doneOilsCount++
+			}
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return doneOilsCount
 }
 
 func (m *OilManipulator) oilHasDoneColor(color string) bool {

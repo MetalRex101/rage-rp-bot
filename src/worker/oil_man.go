@@ -1,6 +1,7 @@
 package worker
 
 import (
+	"context"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"rp-bot-client/src/captcha"
@@ -15,7 +16,6 @@ var (
 
 const (
 	maxBarrelsCountInInventory = 100
-	oilsCount                  = 4
 )
 
 func NewOilMan(
@@ -43,7 +43,6 @@ type OilMan struct {
 	pid                     int32
 	running                 bool
 	captchaNotAppearedTimes int
-	currentOil              int
 	withStorage             bool
 	barrelsCounter          int
 
@@ -73,7 +72,7 @@ func (w *OilMan) Resume() {
 
 func (w *OilMan) Restart() {
 	w.Interrupt()
-	w.currentOil = 0
+	//w.currentOil = 0
 	time.Sleep(100 * time.Millisecond)
 	w.Resume()
 }
@@ -91,12 +90,11 @@ func (w *OilMan) oil() {
 				continue
 			}
 
-			w.oilManipulator.holdOil(w.currentOil)
-			w.oilManipulator.releaseOilOnDone(w.currentOil)
+			heldOilCoordinates := w.oilManipulator.holdOil()
+			ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
+			isAllOilsDone := w.oilManipulator.releaseOilOnDone(heldOilCoordinates, ctx)
 
-			w.currentOil++
-
-			solved, err := w.solveCaptchaIfNeeded()
+			solved, err := w.solveCaptchaIfNeeded(isAllOilsDone)
 			if err != nil {
 				log.WithError(err).Error("failed to check or solve captcha")
 				w.oilManipulator.ReOpenWindow()
@@ -106,6 +104,10 @@ func (w *OilMan) oil() {
 			if solved {
 				w.Restart()
 				continue
+			}
+
+			if isAllOilsDone {
+				<-time.After(time.Second)
 			}
 
 			log.Debug("before send to oil ch")
@@ -123,9 +125,8 @@ func (w *OilMan) oil() {
 	}
 }
 
-func (w *OilMan) solveCaptchaIfNeeded() (bool, error) {
-	log.Debugf("current oil: %d", w.currentOil)
-	solved, err := w.checkCaptchaAndSolveIfNeeded()
+func (w *OilMan) solveCaptchaIfNeeded(isAllOilsDone bool) (bool, error) {
+	solved, err := w.checkCaptchaAndSolveIfNeeded(isAllOilsDone)
 	if errors.Is(err, captchaSolveErr) || errors.Is(err, captchaNotAppearedTooManyTimesErr) {
 		return false, err
 	} else if err != nil {
@@ -137,12 +138,11 @@ func (w *OilMan) solveCaptchaIfNeeded() (bool, error) {
 	return solved, nil
 }
 
-func (w *OilMan) checkCaptchaAndSolveIfNeeded() (bool, error) {
+func (w *OilMan) checkCaptchaAndSolveIfNeeded(isAllOilsDone bool) (bool, error) {
 	defer func() {
-		if w.isOilMiningIterationFinished() {
+		if isAllOilsDone {
 			log.Debug("Oil mining iteration has finished")
 			w.moveBarrelsToStorageIfNeeded()
-			w.currentOil = 0
 		}
 	}()
 
@@ -186,8 +186,4 @@ func (w *OilMan) moveBarrelsToStorageIfNeeded() {
 	w.oilManipulator.pressE()
 
 	<-time.After(time.Second)
-}
-
-func (w *OilMan) isOilMiningIterationFinished() bool {
-	return w.currentOil == oilsCount
 }
