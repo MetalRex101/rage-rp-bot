@@ -4,6 +4,7 @@ go 1.14
 
 require (
 	github.com/go-vgo/robotgo v0.90.2
+	github.com/jbuchbinder/gopnm v0.0.0-20150223212718-5176c556b9ce
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/oliamb/cutter v0.2.2
 	github.com/pkg/errors v0.9.0
