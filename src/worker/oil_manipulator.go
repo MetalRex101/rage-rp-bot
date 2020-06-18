@@ -120,7 +120,7 @@ func (m *OilManipulator) releaseOil() {
 func (m *OilManipulator) ReOpenWindow() {
 	m.pressEsc()
 
-	<-time.After(300 * time.Millisecond)
+	<-time.After(time.Second)
 
 	m.pressE()
 
