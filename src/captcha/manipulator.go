@@ -28,10 +28,9 @@ func (m *MouseManipulator) selectAnswer(answerNum int) error {
 	return window.ActivatePidAndRun(m.pid, func() error {
 		x, y := m.getAnswerCoordinates(answerNum)
 
-		robotgo.MoveSmooth(x, y)
-		time.Sleep(20 * time.Millisecond)
-		robotgo.Click()
-		time.Sleep(20 * time.Millisecond)
+		robotgo.MovesClick(x, y)
+
+		<-time.After(time.Millisecond * 500)
 
 		return nil
 	})
@@ -42,10 +41,9 @@ func (m *MouseManipulator) clickAnswerButton() error {
 	const x, y = 912, 702
 
 	return window.ActivatePidAndRun(m.pid, func() error {
-		robotgo.MoveSmooth(x, y)
-		time.Sleep(20 * time.Millisecond)
-		robotgo.Click()
-		time.Sleep(20 * time.Millisecond)
+		robotgo.MovesClick(x, y)
+
+		<-time.After(time.Millisecond * 500)
 
 		return nil
 	})
