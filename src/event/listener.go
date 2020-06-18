@@ -40,12 +40,6 @@ func (l *Listener) start() {
 		log.Debug("ctrl-t: event sent")
 	})
 
-	robotgo.EventHook(hook.KeyDown, []string{"y", "ctrl"}, func(e hook.Event) {
-		log.Debug("ctrl-y: toggle speed")
-		l.outCh <- Event{T: toggleHoldTime}
-		log.Debug("ctrl-y: event sent")
-	})
-
 	robotgo.EventHook(hook.KeyDown, []string{"c", "ctrl"}, func(e hook.Event) {
 		log.Debug("ctrl-c: stop bot. Exiting...")
 		l.outCh <- Event{T: stop}

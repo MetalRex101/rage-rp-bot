@@ -54,7 +54,6 @@ func (m *OilManipulator) holdOil(currentOil int) {
 }
 
 func (m *OilManipulator) releaseOilOnDone(currentOil int) {
-	log.Info("waiting to release oil")
 	if currentOil == 3 {
 		m.releaseLastOilOnDone()
 		return
@@ -66,7 +65,6 @@ func (m *OilManipulator) releaseOilOnDone(currentOil int) {
 		for {
 			color := robotgo.GetPixelColor(coordinates.x, coordinates.y)
 			if m.oilHasDoneColor(color) {
-				log.Info("oil done")
 				m.releaseOil()
 				return nil
 			}
@@ -79,20 +77,16 @@ func (m *OilManipulator) releaseOilOnDone(currentOil int) {
 }
 
 func (m *OilManipulator) releaseLastOilOnDone() {
-	log.Info("process last oil")
-
 	err := window.ActivatePidAndRun(m.pid, func() error {
 		for {
 			allFinished := true
 			for _, coordinates := range m.oilCoordinates {
 				newColor := robotgo.GetPixelColor(coordinates.x, coordinates.y)
-				log.Info(coordinates, newColor)
 				if m.oilHasDoneColor(newColor) {
 					allFinished = false
 				}
 			}
 			if allFinished {
-				log.Info("last oil done")
 				m.releaseOil()
 				return nil
 			}

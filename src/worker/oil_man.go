@@ -61,13 +61,13 @@ func (w *OilMan) Start() {
 
 func (w *OilMan) Interrupt() {
 	log.Debug("Before interrupt")
-	w.stateChan <- false
+	go func() { w.stateChan <- false }()
 	log.Debug("After interrupt")
 }
 
 func (w *OilMan) Resume() {
 	log.Debug("Before resume")
-	w.stateChan <- true
+	go func() { w.stateChan <- true }()
 	log.Debug("After resume")
 }
 
@@ -76,11 +76,6 @@ func (w *OilMan) Restart() {
 	w.currentOil = 0
 	time.Sleep(100 * time.Millisecond)
 	w.Resume()
-}
-
-func (w *OilMan) RestartWithReopen() {
-	w.oilManipulator.ReOpenWindow()
-	w.Restart()
 }
 
 func (w *OilMan) oil() {
@@ -104,11 +99,12 @@ func (w *OilMan) oil() {
 			solved, err := w.solveCaptchaIfNeeded()
 			if err != nil {
 				log.WithError(err).Error("failed to check or solve captcha")
-				go w.RestartWithReopen()
+				w.oilManipulator.ReOpenWindow()
+				w.Restart()
 				continue
 			}
 			if solved {
-				go w.Restart()
+				w.Restart()
 				continue
 			}
 
