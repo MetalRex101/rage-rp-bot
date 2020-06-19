@@ -4,7 +4,7 @@
 The main idea of the bot was to have fun making something, that will interact with the game and perform routine work.
 
 There are two main mini games on the current RAGE RP mode server: **quarry** and **oil tower**.
-The essence of the game of mini games is to perform some simple actions, like pressing some key for a certain time or
+The essence of mini games is to perform some simple actions, like pressing some key for a certain time or
 to click on oils util they are filled.
 After successful iteration gamer gains some resource, that later could be sold for game currency.
 
