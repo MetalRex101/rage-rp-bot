@@ -14,7 +14,7 @@ type Listener struct {
 	outCh chan Event
 }
 
-func (l *Listener) Start () <-chan Event {
+func (l *Listener) Start() <-chan Event {
 	go l.start()
 
 	return l.outCh
@@ -40,12 +40,6 @@ func (l *Listener) start() {
 		log.Debug("ctrl-t: event sent")
 	})
 
-	robotgo.EventHook(hook.KeyDown, []string{"y", "ctrl"}, func(e hook.Event) {
-		log.Debug("ctrl-y: toggle speed")
-		l.outCh <- Event{T: toggleHoldTime}
-		log.Debug("ctrl-y: event sent")
-	})
-
 	robotgo.EventHook(hook.KeyDown, []string{"c", "ctrl"}, func(e hook.Event) {
 		log.Debug("ctrl-c: stop bot. Exiting...")
 		l.outCh <- Event{T: stop}
@@ -62,7 +56,6 @@ func writeHelpMessage() {
 		"ctrl+r to resume bot",
 		"ctrl+c to stop bot",
 		"ctrl+t to restart bot",
-		"ctrl+y to toggle hold time for oilman",
 	}
 
 	log.Info("Please use this keyboard shortcuts to control the bot: ")

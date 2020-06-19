@@ -3,11 +3,10 @@ package event
 type eventType string
 
 const (
-	stop           eventType = "stop"
-	pause          eventType = "pause"
-	resume         eventType = "resume"
-	restart        eventType = "restart"
-	toggleHoldTime eventType = "toggle-hold-time"
+	stop    eventType = "stop"
+	pause   eventType = "pause"
+	resume  eventType = "resume"
+	restart eventType = "restart"
 )
 
 type Event struct {
@@ -28,8 +27,4 @@ func (e Event) IsResume() bool {
 
 func (e Event) IsRestart() bool {
 	return e.T == restart
-}
-
-func (e Event) IsToggleHoldTime() bool {
-	return e.T == toggleHoldTime
 }

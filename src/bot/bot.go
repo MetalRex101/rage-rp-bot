@@ -76,10 +76,5 @@ func (b *Bot) handleEvent(e event.Event) error {
 		b.worker.Restart()
 	}
 
-	if e.IsToggleHoldTime() {
-		b.running = true
-		b.worker.ToggleHoldTime()
-	}
-
 	return nil
 }
