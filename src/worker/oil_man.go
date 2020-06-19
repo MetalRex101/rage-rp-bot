@@ -94,19 +94,19 @@ func (w *OilMan) oil() {
 			ctx, _ := context.WithTimeout(context.Background(), 5*time.Second)
 			isAllOilsDone := w.oilManipulator.releaseOilOnDone(heldOilCoordinates, ctx)
 
-			solved, err := w.solveCaptchaIfNeeded(isAllOilsDone)
-			if err != nil {
-				log.WithError(err).Error("failed to check or solve captcha")
-				w.oilManipulator.ReOpenWindow()
-				w.Restart()
-				continue
-			}
-			if solved {
-				w.Restart()
-				continue
-			}
-
 			if isAllOilsDone {
+				solved, err := w.solveCaptchaIfNeeded()
+				if err != nil {
+					log.WithError(err).Error("failed to check or solve captcha")
+					w.oilManipulator.ReOpenWindow()
+					w.Restart()
+					continue
+				}
+				if solved {
+					w.Restart()
+					continue
+				}
+
 				<-time.After(time.Second)
 			}
 
@@ -125,8 +125,8 @@ func (w *OilMan) oil() {
 	}
 }
 
-func (w *OilMan) solveCaptchaIfNeeded(isAllOilsDone bool) (bool, error) {
-	solved, err := w.checkCaptchaAndSolveIfNeeded(isAllOilsDone)
+func (w *OilMan) solveCaptchaIfNeeded() (bool, error) {
+	solved, err := w.checkCaptchaAndSolveIfNeeded()
 	if errors.Is(err, captchaSolveErr) || errors.Is(err, captchaNotAppearedTooManyTimesErr) {
 		return false, err
 	} else if err != nil {
@@ -138,12 +138,10 @@ func (w *OilMan) solveCaptchaIfNeeded(isAllOilsDone bool) (bool, error) {
 	return solved, nil
 }
 
-func (w *OilMan) checkCaptchaAndSolveIfNeeded(isAllOilsDone bool) (bool, error) {
+func (w *OilMan) checkCaptchaAndSolveIfNeeded() (bool, error) {
 	defer func() {
-		if isAllOilsDone {
-			log.Debug("Oil mining iteration has finished")
-			w.moveBarrelsToStorageIfNeeded()
-		}
+		log.Debug("Oil mining iteration has finished")
+		w.moveBarrelsToStorageIfNeeded()
 	}()
 
 	// worker finished to oil - time to check captcha
@@ -159,7 +157,7 @@ func (w *OilMan) checkCaptchaAndSolveIfNeeded(isAllOilsDone bool) (bool, error) 
 		return true, nil
 	}
 
-	// 5 iterations
+	// 20 iterations
 	if w.captchaNotAppearedTimes > 20 {
 		return false, captchaNotAppearedTooManyTimesErr
 	}
