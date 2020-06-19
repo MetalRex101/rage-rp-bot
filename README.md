@@ -38,7 +38,7 @@ that look like white and color everything else to black and invert colors after 
 
 ### Recognition
 #### Gosseract
-First try was `gosseract` library which is the wrapper over google tesseract. It has a bit rate of false predictions
+First try was `gosseract` library which is the wrapper over google tesseract. It has a big rate of false predictions
 in term of recognizing numbers. Was skipped very fast.
 
 #### Calamari OCR
