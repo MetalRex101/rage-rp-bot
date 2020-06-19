@@ -51,7 +51,7 @@ func (m *Manipulator) replaceItem() {
 		<-time.After(500 * time.Millisecond)
 
 		robotgo.Move(m.inventoryFirstSlotPixel.x, m.inventoryFirstSlotPixel.y)
-		robotgo.DragSmooth(m.storageFirstSlotPixel.x, m.storageFirstSlotPixel.y)
+		robotgo.Drag(m.storageFirstSlotPixel.x, m.storageFirstSlotPixel.y)
 
 		<-time.After(500 * time.Millisecond)
 

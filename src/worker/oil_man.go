@@ -4,6 +4,7 @@ import (
 	"github.com/go-vgo/robotgo"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"os"
 	"rp-bot-client/src/captcha"
 	"rp-bot-client/src/storage"
 	"rp-bot-client/src/window"
@@ -189,7 +190,8 @@ func (w *OilMan) checkCaptchaAndSolveIfNeeded() (bool, error) {
 	}
 
 	// 5 iterations
-	if w.captchaNotAppearedTimes > 20 {
+	if w.captchaNotAppearedTimes > 100 {
+		os.Exit(2)
 		return false, captchaNotAppearedTooManyTimesErr
 	}
 
