@@ -5,7 +5,7 @@ The main idea of the bot was to have fun making something, that will interact wi
 
 There are two main mini games on the current RAGE RP mode server: **quarry** and **oil tower**.
 The essence of mini games is to perform some simple actions, like pressing some key for a certain time or
-to click on oils util they are filled.
+to click on oils until they are filled.
 After successful iteration gamer gains some resource, that later could be sold for game currency.
 
 After some number of iterations, simple captcha is appeared and should be solved. After captcha is solved, the mini game contunies.
